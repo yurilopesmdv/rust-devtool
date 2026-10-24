@@ -23,6 +23,14 @@ fn put(files: &mut BTreeMap<PathBuf, String>, path: PathBuf, content: String) ->
 }
 
 pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error> {
+    render_assets(plan, catalog, ASSETS)
+}
+
+fn render_assets(
+    plan: &Plan,
+    catalog: &Catalog,
+    assets: &[(&str, &str, &str)],
+) -> Result<Vec<ProjectFiles>, Error> {
     let r = &plan.configuration;
     let name = r.project.name.as_deref().unwrap();
     let full = r.project.kind == Some(ProjectType::Fullstack);
@@ -93,7 +101,7 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             name.into()
         };
         let mut count = 0;
-        for (_, asset_path, source) in ASSETS.iter().filter(|(id, _, _)| *id == app.template) {
+        for (_, asset_path, source) in assets.iter().filter(|(id, _, _)| *id == app.template) {
             let asset_path = if let Some(rest) = asset_path.strip_prefix("@compose/") {
                 if compose { rest } else { continue }
             } else {
@@ -299,4 +307,86 @@ fn app_readme(name: &str, template: &str, manager: &str, web_port: u16, compose:
             ""
         }
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    struct Scratch(PathBuf);
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+
+    #[test]
+    fn changed_templates_fail_before_any_destination_is_published() {
+        let root = std::env::temp_dir().join(format!(
+            "boilerplate-anchor-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&root).unwrap();
+        let scratch = Scratch(root);
+        let catalog = Catalog::embedded().unwrap();
+        for (stack, file, defect) in [
+            ("express-ts", "src/app.ts", "absent"),
+            ("express-ts", "src/app.ts", "duplicated"),
+            ("express-ts", "src/app.ts", "missing-source"),
+            (
+                "nest-ts",
+                "src/modules/example/example.module.ts",
+                "missing-source",
+            ),
+        ] {
+            let destination = scratch.0.join(format!("{stack}-{defect}"));
+            let mut recipe = Recipe::default();
+            recipe.project.name = Some("broken-template".into());
+            recipe.project.kind = Some(ProjectType::Backend);
+            recipe.project.destination = Some(destination.clone());
+            recipe.backend.template = Some(stack.into());
+            recipe.backend.database = Some(Database::Postgres);
+            recipe.backend.database_location = Some(Location::External);
+            let plan = crate::planner::build(recipe, &catalog, &scratch.0).unwrap();
+            let original = ASSETS
+                .iter()
+                .find(|(id, path, _)| *id == stack && *path == file)
+                .unwrap()
+                .2;
+            let anchor = "app.disable('x-powered-by');";
+            let damaged = if defect == "duplicated" {
+                format!("{original}\n{anchor}\n")
+            } else {
+                original.replace(anchor, "// anchor removed")
+            };
+            let assets: Vec<_> = ASSETS
+                .iter()
+                .copied()
+                .filter_map(|(id, path, source)| {
+                    if id == stack && path == file {
+                        if defect == "missing-source" {
+                            None
+                        } else {
+                            Some((id, path, damaged.as_str()))
+                        }
+                    } else {
+                        Some((id, path, source))
+                    }
+                })
+                .collect();
+            let error = render_assets(&plan, &catalog, &assets).unwrap_err();
+            assert_eq!(error.code, 1);
+            assert!(error.message.contains(file), "{}", error.message);
+            assert!(!destination.exists());
+            assert_eq!(fs::read_dir(&scratch.0).unwrap().count(), 0);
+        }
+    }
 }

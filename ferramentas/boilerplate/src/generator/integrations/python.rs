@@ -265,7 +265,7 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
             "import ExampleResponse",
             "import ExampleInput, ExampleResponse",
         )?;
-        files.get_mut(&prefix.join("app/modules/example/router.py")).unwrap().push_str("\n\n@router.post(\"\", response_model=ExampleResponse)\nasync def write_example(body: ExampleInput, service: Service) -> ExampleResponse:\n    return await service.write(body.message)\n");
+        source_mut(files, prefix, "app/modules/example/router.py")?.push_str("\n\n@router.post(\"\", response_model=ExampleResponse)\nasync def write_example(body: ExampleInput, service: Service) -> ExampleResponse:\n    return await service.write(body.message)\n");
     }
     source.push_str(&format!(
         "\n\ndef get_service({}) -> ExampleService:\n    return ExampleService({})\n",
@@ -278,7 +278,7 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     ));
     insert(files, prefix, "app/modules/example/service.py", source);
     if db != Database::None || vault {
-        let test = files.get_mut(&prefix.join("tests/test_api.py")).unwrap();
+        let test = source_mut(files, prefix, "tests/test_api.py")?;
         let condition = if db != Database::None {
             "not (os.environ.get(\"DATABASE_URL\") or os.environ.get(\"DATABASE_URL_FILE\"))"
         } else if cache {
@@ -287,12 +287,24 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
             "not (os.environ.get(\"APP_SECRET\") or os.environ.get(\"APP_SECRET_FILE\"))"
         };
         test.insert_str(0, "import os\n\nimport pytest\n");
-        *test=test.replace("def test_health_and_example():",&format!("@pytest.mark.skipif(\n    {condition},\n    reason=\"Requer serviços/segredos de teste\",\n)\ndef test_health_and_example():"));
+        replace_source(
+            test,
+            "tests/test_api.py",
+            "def test_health_and_example():",
+            &format!(
+                "@pytest.mark.skipif(\n    {condition},\n    reason=\"Requer serviços/segredos de teste\",\n)\ndef test_health_and_example():"
+            ),
+        )?;
     }
     if cache && db == Database::None && !vault {
-        let test = files.get_mut(&prefix.join("tests/test_api.py")).unwrap();
+        let test = source_mut(files, prefix, "tests/test_api.py")?;
         test.insert_str(0, "import os\n\n");
-        *test = test.replace("def test_health_and_example():", "def test_health_and_example(monkeypatch):\n    monkeypatch.setenv(\"REDIS_URL\", os.environ.get(\"REDIS_URL\", \"redis://127.0.0.1:9\"))");
+        replace_source(
+            test,
+            "tests/test_api.py",
+            "def test_health_and_example():",
+            "def test_health_and_example(monkeypatch):\n    monkeypatch.setenv(\"REDIS_URL\", os.environ.get(\"REDIS_URL\", \"redis://127.0.0.1:9\"))",
+        )?;
     }
     if db != Database::None {
         insert(
@@ -301,10 +313,10 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
             "tests/test_readiness.py",
             include_str!("../../../integrations/python/test-readiness.py"),
         );
-        files.get_mut(&prefix.join("tests/test_api.py")).unwrap().push_str("\n\n@pytest.mark.skipif(\n    not (os.environ.get(\"DATABASE_URL\") or os.environ.get(\"DATABASE_URL_FILE\")),\n    reason=\"Requer banco de teste preparado\",\n)\ndef test_persistence():\n    with TestClient(create_app()) as client:\n        previous = client.get(\"/api/v1/example\").json()\n        try:\n            assert client.post(\"/api/v1/example\", json={\"message\": \"persistido\"}).status_code == 200\n            assert client.get(\"/api/v1/example\").json() == {\"message\": \"persistido\"}\n            assert client.post(\"/api/v1/example\", json={\"message\": 123}).status_code == 422\n        finally:\n            client.post(\"/api/v1/example\", json=previous)\n");
+        source_mut(files, prefix, "tests/test_api.py")?.push_str("\n\n@pytest.mark.skipif(\n    not (os.environ.get(\"DATABASE_URL\") or os.environ.get(\"DATABASE_URL_FILE\")),\n    reason=\"Requer banco de teste preparado\",\n)\ndef test_persistence():\n    with TestClient(create_app()) as client:\n        previous = client.get(\"/api/v1/example\").json()\n        try:\n            assert client.post(\"/api/v1/example\", json={\"message\": \"persistido\"}).status_code == 200\n            assert client.get(\"/api/v1/example\").json() == {\"message\": \"persistido\"}\n            assert client.post(\"/api/v1/example\", json={\"message\": 123}).status_code == 422\n        finally:\n            client.post(\"/api/v1/example\", json=previous)\n");
     }
     if metrics {
-        files.get_mut(&prefix.join("tests/test_api.py")).unwrap().push_str("\n\ndef test_metrics_have_bounded_route_labels():\n    # No startup dependency is needed to inspect liveness and routing metrics.\n    client = TestClient(create_app())\n    client.get(\"/health\")\n    client.get(\"/missing/random-id\")\n    metrics = client.get(\"/metrics\").text\n    assert \"http_requests_total\" in metrics\n    assert \"unmatched\" in metrics\n    assert \"random-id\" not in metrics\n");
+        source_mut(files, prefix, "tests/test_api.py")?.push_str("\n\ndef test_metrics_have_bounded_route_labels():\n    # No startup dependency is needed to inspect liveness and routing metrics.\n    client = TestClient(create_app())\n    client.get(\"/health\")\n    client.get(\"/missing/random-id\")\n    metrics = client.get(\"/metrics\").text\n    assert \"http_requests_total\" in metrics\n    assert \"unmatched\" in metrics\n    assert \"random-id\" not in metrics\n");
     }
     insert(
         files,

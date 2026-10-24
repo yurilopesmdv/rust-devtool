@@ -296,14 +296,18 @@ pub fn app()->Router{{
     if db != Database::None
         && let Some(docker) = files.get_mut(&prefix.join("Dockerfile"))
     {
-        *docker = docker.replace(
+        replace_source(
+            docker,
+            "Dockerfile",
             "RUN cargo build --release",
             "RUN cargo build --release && cargo build --release --example prepare",
-        );
-        *docker = docker.replace(
+        )?;
+        replace_source(
+            docker,
+            "Dockerfile",
             "USER 10001",
             "COPY --from=build /app/target/release/examples/prepare /app/prepare\nUSER 10001",
-        );
+        )?;
     }
     Ok(())
 }

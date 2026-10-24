@@ -42,3 +42,5 @@ Para Node, validar `npm ci` e `npm run check` nas bases geradas. Para Python, uv
 A revisão atual validou Node 24.15.0, Rust 1.99.1 e os lockfiles distribuídos. Novas linguagens continuam usando metadados e assets próprios; seu provisionamento de runtime e adapters exigem validação adicional antes de serem disponibilizados.
 
 A composição Node poda lockfiles de apoio por dependências alcançáveis, removendo drivers não escolhidos. Rust e Python distribuem snapshots de Cargo.lock/uv.lock por combinação; ao alterar dependências/flags de features, atualize essas combinações e execute validações com --locked. Para validação reproduzível, veja [validacao.md](validacao.md).
+
+Pontos de extensão por texto devem usar integrations::replace/replace_source e exigir uma única âncora literal não vazia. Fontes ou âncoras ausentes/duplicadas retornam Error antes da publicação; não use substituições silenciosas para slots de composição. Substituições globais intencionais de placeholders continuam sendo um contrato diferente. Testes do renderer incluem assets corrompidos sem criar destinos.

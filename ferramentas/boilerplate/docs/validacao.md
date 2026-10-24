@@ -10,7 +10,7 @@ cargo test --workspace --all-targets --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Os 55 testes do workspace incluem uma matriz de 72 combinações de backend/dados/cache/monitoria/Vault, mais 24 combinações Python e verificações das doze duplas fullstack, conferindo ausência de módulos desativados, lockfiles, serviços locais/externos, referências a segredos, layouts e URLs. Não iniciam bancos, containers ou clusters.
+Os 59 testes do workspace incluem uma matriz de 72 combinações de backend/dados/cache/monitoria/Vault, mais 24 combinações Python e verificações das doze duplas fullstack, conferindo ausência de módulos desativados, lockfiles, serviços locais/externos, referências a segredos, layouts e URLs. Não iniciam bancos, containers ou clusters.
 
 ## Compilar as aplicações geradas
 

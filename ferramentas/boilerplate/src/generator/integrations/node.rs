@@ -11,7 +11,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     let cache = r.backend.cache == Some(Cache::Redis);
     let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
     let vault = r.infrastructure.secrets == Some(Secrets::Vault);
-    let mut package: Value = serde_json::from_str(&files[&prefix.join("package.json")])
+    let mut package: Value = serde_json::from_str(source_mut(files, prefix, "package.json")?)
         .map_err(|e| Error::operation(e.to_string()))?;
     let mut imports = String::new();
     let mut start = String::new();
@@ -193,7 +193,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             "server.close(() => process.exit(0));",
             "server.close(() => { void close().finally(()=>process.exit(0)); });",
         )?;
-        let s = files.get_mut(&prefix.join("src/server.ts")).unwrap();
+        let s = source_mut(files, prefix, "src/server.ts")?;
         s.insert_str(
             0,
             "import {initialize,close} from './infrastructure/lifecycle.js';\n",
@@ -206,13 +206,10 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             "app.disable('x-powered-by');",
             "app.disable('x-powered-by');\napp.get('/ready',async(_req,res)=>{try{res.json(await readiness());}catch{res.status(503).json({status:'unavailable'});}});",
         )?;
-        files
-            .get_mut(&prefix.join("src/app.ts"))
-            .unwrap()
-            .insert_str(
-                0,
-                "import {readiness} from './infrastructure/lifecycle.js';\n",
-            );
+        source_mut(files, prefix, "src/app.ts")?.insert_str(
+            0,
+            "import {readiness} from './infrastructure/lifecycle.js';\n",
+        );
     } else {
         if db != Database::None {
             service = service.replace(
@@ -247,22 +244,25 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 .replace("'../../../infrastructure/", "'../../infrastructure/"),
         );
         if db != Database::None {
-            let repository_path =
-                prefix.join("src/modules/example/repositories/example.repository.ts");
-            let repository = files.get_mut(&repository_path).unwrap();
-            let methods = repository.find("export async function read()").unwrap();
+            let repository = source_mut(
+                files,
+                prefix,
+                "src/modules/example/repositories/example.repository.ts",
+            )?;
+            let methods = anchor_position(
+                repository,
+                "src/modules/example/repositories/example.repository.ts",
+                "export async function read()",
+            )?;
             *repository = format!(
                 "import {{Injectable}} from '@nestjs/common';\n{}\n@Injectable() export class ExampleRepository {{ {} }}\n",
                 &repository[..methods],
                 repository[methods..].replace("export async function ", "async ")
             );
-            files
-                .get_mut(&prefix.join("src/modules/example/example.module.ts"))
-                .unwrap()
-                .insert_str(
-                    0,
-                    "import { ExampleRepository } from './repositories/example.repository.js';\n",
-                );
+            source_mut(files, prefix, "src/modules/example/example.module.ts")?.insert_str(
+                0,
+                "import { ExampleRepository } from './repositories/example.repository.js';\n",
+            );
             replace(
                 files,
                 prefix,
@@ -285,13 +285,10 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 "  @Get()\n  get() {\n    return this.service.get();\n  }\n @Post() @HttpCode(200) write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||message.length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
             )?;
         }
-        files
-            .get_mut(&prefix.join("src/app.ts"))
-            .unwrap()
-            .insert_str(
-                0,
-                "import {readiness} from './infrastructure/lifecycle.js';\n",
-            );
+        source_mut(files, prefix, "src/app.ts")?.insert_str(
+            0,
+            "import {readiness} from './infrastructure/lifecycle.js';\n",
+        );
         replace(
             files,
             prefix,
@@ -315,13 +312,10 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             "src/infrastructure/infrastructure.module.ts",
             "import {Module,Injectable,type OnModuleInit,type OnApplicationShutdown} from '@nestjs/common';\nimport {initialize,close} from './lifecycle.js';\n@Injectable() class IntegrationLifecycle implements OnModuleInit,OnApplicationShutdown {async onModuleInit(){await initialize();} async onApplicationShutdown(){await close();}}\n@Module({providers:[IntegrationLifecycle]}) export class InfrastructureModule {}\n",
         );
-        files
-            .get_mut(&prefix.join("src/app.module.ts"))
-            .unwrap()
-            .insert_str(
-                0,
-                "import {InfrastructureModule} from './infrastructure/infrastructure.module.js';\n",
-            );
+        source_mut(files, prefix, "src/app.module.ts")?.insert_str(
+            0,
+            "import {InfrastructureModule} from './infrastructure/infrastructure.module.js';\n",
+        );
         replace(
             files,
             prefix,
@@ -339,7 +333,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             METRICS,
         );
         let path = "src/app.ts";
-        files.get_mut(&prefix.join(path)).unwrap().insert_str(0,"import {metricsMiddleware,metricsHandler} from './infrastructure/observability/metrics.js';\n");
+        source_mut(files, prefix, path)?.insert_str(0,"import {metricsMiddleware,metricsHandler} from './infrastructure/observability/metrics.js';\n");
         if express {
             replace(
                 files,
@@ -369,13 +363,18 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     };
     let tests = "tests/api.test.mjs";
     if db != Database::None {
-        files.get_mut(&prefix.join(tests)).unwrap().insert_str(
+        source_mut(files, prefix, tests)?.insert_str(
             0,
             "import * as database from '../dist/infrastructure/database/client.js';\n",
         );
     }
-    let source = files.get_mut(&prefix.join(tests)).unwrap();
-    *source = source.replacen("async () =>", &format!("{{skip:{skip}}}, async () =>"), 1);
+    let source = source_mut(files, prefix, tests)?;
+    replace_source(
+        source,
+        tests,
+        "async () =>",
+        &format!("{{skip:{skip}}}, async () =>"),
+    )?;
     if cache && db == Database::None && !vault {
         source.insert_str(0,"// Exercita fallback com Redis indisponível; não simula um cache real.\nif(!process.env.REDIS_URL)process.env.REDIS_URL='redis://127.0.0.1:9';\n");
     }
@@ -384,16 +383,18 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             0,
             "import { initialize, close } from '../dist/infrastructure/lifecycle.js';\n",
         );
-        *source = source.replacen(
+        replace_source(
+            source,
+            tests,
             "  const server =",
             "  await initialize();\n  const server =",
-            1,
-        );
-        *source = source.replacen(
+        )?;
+        replace_source(
+            source,
+            tests,
             "server.close(resolve));",
             "server.close(resolve)); await close();",
-            1,
-        );
+        )?;
     }
     let base = if express { "base" } else { "url" };
     let mut checks = String::new();
@@ -415,13 +416,18 @@ await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':
     if db != Database::None {
         checks.push_str("await database.close();\nassert.equal((await fetch(`${__BASE__}/ready`)).status,503);\nassert.equal((await fetch(`${__BASE__}/health`)).status,200);\n");
     }
-    let source = files.get_mut(&prefix.join(tests)).unwrap();
+    let source = source_mut(files, prefix, tests)?;
     let marker = if express {
         "  } finally {"
     } else {
         " } finally {"
     };
-    *source = source.replacen(marker, &(checks.replace("__BASE__", base) + marker), 1);
+    replace_source(
+        source,
+        tests,
+        marker,
+        &(checks.replace("__BASE__", base) + marker),
+    )?;
     if vault {
         insert(
             files,
@@ -522,7 +528,7 @@ pub fn prune_lock(source: &str, package: &Value) -> Result<Value, Error> {
 }
 
 pub fn next_metrics(files: &mut Files, prefix: &Path) -> Result<(), Error> {
-    let mut package: Value = serde_json::from_str(&files[&prefix.join("package.json")])
+    let mut package: Value = serde_json::from_str(source_mut(files, prefix, "package.json")?)
         .map_err(|e| Error::operation(e.to_string()))?;
     package["dependencies"]["prom-client"] = json!("15.1.3");
     let lock = prune_lock(
