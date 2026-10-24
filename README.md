@@ -5,7 +5,7 @@ Aprender Rust na prática, partindo de uma base em TypeScript e avançando até 
 O repositório é um workspace Cargo com três espaços:
 
 - [guia/](guia/README.md): roteiro, explicações e exemplos executáveis da linguagem.
-- [ferramentas/boilerplate/](ferramentas/boilerplate/README.md): catálogo e planejamento de projetos web, separado dos utilitários.
+- [ferramentas/boilerplate/](ferramentas/boilerplate/README.md): geração, instalação e planejamento de projetos web, separados dos utilitários.
 - [ferramentas/](ferramentas/README.md): utilitários de desenvolvimento; a CLI existente está em [ferramentas/devtool/](ferramentas/devtool/README.md).
 
 ## Começar
@@ -28,12 +28,12 @@ Siga o [roteiro completo](guia/README.md): fundamentos → controle de fluxo →
 
 Cada pasta tem explicação em português, código executável, comparação com TypeScript e exercícios. Ao final, use o [projeto de consolidação](guia/projeto-final.md) para planejar sua primeira ferramenta. Consulte também a [ponte TypeScript → Rust](guia/referencias/typescript-para-rust.md).
 
-## Planejar projetos web
+## Criar e planejar projetos web
 
-O pacote [boilerplate](ferramentas/boilerplate/README.md) já consulta stacks, valida receitas/opções e produz planos de projetos. Executa dentro de WSL/Linux. A geração de arquivos e as integrações continuam nas [próximas etapas](ferramentas/boilerplate/docs/implementacao.md).
+O pacote [boilerplate](ferramentas/boilerplate/README.md) cria as seis bases web, recebe nome/destino, instala dependências quando solicitado e integra Git/GitHub opcionalmente. Executa em WSL/Linux, com ESM e Node 24 por padrão nas stacks Node. Dados/cache/Kubernetes/monitoria/Vault continuam nas [próximas etapas](ferramentas/boilerplate/docs/implementacao.md).
 
 ```sh
-cargo run -p rust-boilerplate -- templates list
+cargo run -p rust-boilerplate -- new
 cargo run -p rust-boilerplate -- plan minha-api --type backend --backend express-ts
 ```
 

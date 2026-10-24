@@ -2,7 +2,9 @@
 
 Pacote `rust-boilerplate`, executável `boilerplate`. Este pacote é independente de `ferramentas/devtool`: utilitários de hash/JSON continuam lá; catálogo, planejamento e futuras integrações de projetos ficam aqui.
 
-**Disponível agora:** catálogo, receitas TOML, validação, plano em texto/JSON e diagnóstico de ferramentas. **Ainda indisponível:** `new`, assistente, geração de fontes, instalação de dependências e arquivos de infraestrutura. As seis stacks estão com status `planned`; capacidades do catálogo descrevem intenções, não adapters já funcionais.
+**Disponível agora:** catálogo, receitas, planos, diagnóstico e `new` com assistente, geração das seis bases, instalação local de dependências, seleção de Node/nvm, Git local e GitHub privado opcional. Dockerfile/.dockerignore/Compose podem ser gerados. As bases estão `ready`; as capacidades avançadas do catálogo continuam sendo intenções, não adapters entregues.
+
+**Ainda no plano:** geração de PostgreSQL/MongoDB/Redis, Kubernetes, Prometheus/Grafana e Vault. `new` rejeita essas integrações antes de criar arquivos; `plan` continua permitindo estudar as combinações. Nenhum serviço é iniciado automaticamente.
 
 ## Requisitos e instalação
 
@@ -25,6 +27,32 @@ boilerplate --help
 Cargo normalmente instala em `$HOME/.cargo/bin`. Se necessário, carregue o ambiente do Rust na sessão com `. "$HOME/.cargo/env"`. Não é necessário instalar como root nem modificar configurações do Windows. O binário pode ser chamado por Bash, Zsh ou POSIX sh; não execute o binário ELF como `sh boilerplate`.
 
 Os exemplos a seguir usam `cargo run` para funcionar sem instalação global. O workspace continua usando a devtool como membro padrão: `cargo run -- help` mantém seu comportamento anterior.
+
+## Criar um projeto
+
+Para o assistente, na raiz do repositório:
+
+```sh
+cargo run -p rust-boilerplate -- new
+```
+
+Ele pede nome, tipo, layout fullstack, destino(s), stack(s), versão Node quando aplicável e opção Compose. O destino precisa ser um diretório novo. Para Express sozinho, permite escolher ESM/CommonJS; ESM é o padrão. Mostra o resumo, confirma a criação, inicializa Git local e pergunta sobre dependências, GitHub privado e push separadamente. Quando os argumentos/receita já fornecem as escolhas, o assistente só pergunta o que falta.
+
+Exemplo reproduzível sem perguntas e sem publicar no GitHub:
+
+```sh
+cargo run -p rust-boilerplate -- new minha-api \
+  --type backend --backend express-ts \
+  --destination ./projetos/minha-api \
+  --node-version 24 --module-system esm \
+  --install yes --setup-node no --github no --non-interactive
+```
+
+O caminho é relativo ao diretório onde você chama a CLI. Nesse exemplo, os arquivos são criados em `./projetos/minha-api`, incluindo `.git`, `package.json`, lockfile, `src/`, testes, `.gitignore`, `.nvmrc`, `.npmrc`, README, AGENTS.md e receita `boilerplate.toml`. `--git no` desativa Git local. Sem instalar agora, use `--install no` e os comandos de instalação ficarão no README.
+
+Sem Node compatível, esse exemplo preserva os fontes e informa como instalar. `--setup-node yes` autoriza preparar nvm/Node quando necessário. Em modo interativo, a preparação é oferecida e exige resposta afirmativa. A CLI verifica Node/npm e versões já instaladas no nvm antes de instalar; não reinstala frameworks, TypeScript, Vite, Nest ou Next globalmente.
+
+Mais detalhes: [criação e instalação](docs/criacao-e-instalacao.md), [Git/GitHub](docs/git-e-github.md) e [manutenção por agentes](docs/manutencao-por-agentes.md).
 
 ## Consultar o catálogo
 
@@ -85,7 +113,7 @@ O endereço de imagem acima é um exemplo a substituir antes de uma futura impla
 
 `local` significa que a infraestrutura fará parte dos arquivos planejados e exige Compose ou manifests. Uma instância instalada/administrada separadamente usa `external`. `none` não cria pastas de integração nem recursos de infraestrutura. Frontend puro rejeita banco/cache/Vault. Monitoria de frontend estático exige o servidor de container planejado; em fullstack, a instrumentação HTTP proposta inicialmente pertence à API.
 
-O plano não sobe Docker nem aplica Kubernetes. URLs, portas, CORS, versões exatas de frameworks/drivers e manifests finais serão adicionados com a geração dos templates.
+O plano não sobe Docker nem aplica Kubernetes. Os exemplos de geração usam API em 3000, React/vanilla em 5173 e Next em 3001, com cliente HTTP e CORS coerentes. Frameworks e lockfiles das bases já estão fixados. Drivers e manifests avançados ainda não são gerados.
 
 ## Receitas TOML e flags
 
@@ -102,7 +130,7 @@ cargo run -p rust-boilerplate -- plan outro-nome \
 
 A receita exige `schema_version = 1` e `catalog_version = "1"`. Campos desconhecidos e valores inválidos são erros. Flags explícitas prevalecem; `--database none`, `--cache none` e `--secrets env` também limpam a localização herdada da opção desativada, salvo localização explícita na mesma chamada (que será validada).
 
-`plan` sempre é não interativo; `--non-interactive` é aceito para scripts. Não há leitura de stdin ou espera por respostas. `--install` não é aceito nesta etapa. Exportação de receita TOML também fica para a etapa de geração; JSON é a saída estruturada atual.
+`plan` sempre é não interativo; `--non-interactive` é aceito para scripts. Não há leitura de stdin ou espera por respostas. `plan` não aceita `--install`: não tem efeitos de instalação. `new` grava `boilerplate.toml` sem credenciais no projeto. A saída de new em JSON exige `--non-interactive` e `--install yes|no`; progresso dos processos externos vai para stderr.
 
 ## Diagnóstico de ferramentas
 
@@ -111,13 +139,14 @@ cargo run -p rust-boilerplate -- doctor --template express-ts
 cargo run -p rust-boilerplate -- doctor --template rust-axum --json
 cargo run -p rust-boilerplate -- doctor --template express-ts \
   --config ferramentas/boilerplate/recipes/fullstack.toml
+cargo run -p rust-boilerplate -- doctor --template express-ts --git --github
 ```
 
 Doctor executa somente consultas de versão dos executáveis previstos para a stack: Node/npm, Rust/Cargo ou nenhum runtime obrigatório para vanilla. Com receita, acrescenta Docker/Compose e kubectl somente quando selecionados. `--template` precisa fazer parte da receita. Em fullstack, execute doctor para cada template se quiser conferir os dois runtimes.
 
-A versão mostrada é informativa: compatibilidade mínima de runtime/framework ainda não foi certificada. Docker é consultado com `--version` e `compose version`; kubectl com `version --client=true`. Não é verificado acesso ao daemon, cluster, bancos, Vault ou serviços de monitoria. Para planejar, nenhuma dessas ferramentas é obrigatória.
+Node é verificado contra a versão solicitada (padrão 24 ou valor da receita), usando uma versão já instalada no nvm quando necessário. Outros requisitos mostram presença/versão; não há certificação de todas as combinações de runtime. Docker é consultado com `--version` e `compose version`; kubectl com `version --client=true`. Não é verificado acesso ao daemon, cluster, bancos, Vault ou serviços de monitoria. Para planejar, nenhuma dessas ferramentas é obrigatória.
 
-Códigos: 0 sucesso; 1 falha operacional ou ferramenta ausente/falhando; 2 argumentos/configuração inválidos. Em JSON, doctor mantém os resultados em stdout e diagnósticos em stderr. `new` ainda não existe e é rejeitado como comando desconhecido.
+Códigos: 0 sucesso; 1 falha operacional ou ferramenta ausente/falhando; 2 argumentos/configuração inválidos. Em JSON, doctor mantém os resultados em stdout e diagnósticos em stderr. `new` cancela com código 130 quando o usuário recusa a confirmação ou a entrada interativa encerra. Falhas de instalação/Git/GitHub preservam os projetos já publicados.
 
 ## Desenvolvimento e extensão
 
@@ -127,4 +156,4 @@ cargo test -p rust-boilerplate --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). O caminho seguinte é implementar renderização/escrita e assistente, começando pelas bases Express/TS e React/Vite. Geração, dependências e integrações terão testes próprios antes de serem anunciadas como disponíveis.
+Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). As próximas etapas implementam os adapters de dados/cache, Kubernetes, monitoria e Vault. A geração de arquivos dessas opções continua indisponível até suas validações específicas. Dockerfiles/Compose foram gerados e o Compose fullstack passou em `docker compose config --quiet`; a construção/execução das imagens ainda não foi validada nesta revisão.

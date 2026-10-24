@@ -1,8 +1,8 @@
 # Fluxo e comandos propostos
 
-[Índice](README.md). `templates list/show`, `plan` e `doctor` já existem. As seções sobre `new`, confirmação, instalação e assistente são o contrato para as próximas etapas. Consulte os exemplos atuais no [guia de uso](../README.md).
+[Índice](README.md). `templates list/show`, `plan`, `doctor` e `new` já existem. O assistente atual cobre bases, destinos, módulos, Node, Compose, instalação e Git/GitHub. As perguntas sobre dados/cache/Kubernetes/monitoria/Vault abaixo descrevem a expansão futura, ainda rejeitada por new. Consulte os exemplos atuais no [guia de uso](../README.md).
 
-## Assistente interativo
+## Fluxo final especificado
 
 `boilerplate new` abre o fluxo no terminal. Cada pergunta oferece uma explicação curta e opção de voltar; mudar uma escolha invalida somente as decisões dependentes.
 
@@ -31,10 +31,10 @@ boilerplate templates list
 boilerplate templates show express-ts
 boilerplate doctor --template express-ts
 
-# FUTURO: assistente, ainda indisponível.
+# Assistente atual para bases e Compose.
 boilerplate new
 
-# FUTURO: geração de backend, ainda indisponível.
+# Backend mínimo com geração disponível.
 boilerplate new minha-api --type backend --backend express-ts \
   --database none --cache none --containers none --kubernetes none \
   --monitoring none --secrets env --install no --non-interactive
@@ -51,8 +51,8 @@ boilerplate plan plataforma --type fullstack --layout monorepo \
   --secrets vault --vault-location local --non-interactive
 
 # O mesmo contrato de opções será aceito por new.
-# FUTURO: geração a partir de receita, ainda indisponível.
-boilerplate new plataforma --config receita.toml --install no --non-interactive
+# Geração a partir de uma receita mínima, sem adapters avançados.
+boilerplate new minha-api --config ferramentas/boilerplate/recipes/backend.toml --install no --non-interactive
 ```
 
 `plan` nunca escreve arquivos de projeto, instala pacotes ou consulta daemons. Pode produzir o plano em JSON para automação. `new` imprime o mesmo plano antes de aplicá-lo.
@@ -88,7 +88,7 @@ monitoring = "none"
 secrets = "env"
 ```
 
-O schema 1 já é validado pelo núcleo; `plan` não aceita `--install` porque nunca executa instalação. Não colocar URLs com credenciais na receita. A escolha de instalar pertence à execução (`--install`), não à receita do projeto.
+O schema 1 já é validado pelo núcleo; `plan` não aceita `--install` porque nunca executa instalação. Não colocar URLs com credenciais na receita. A escolha de instalar pertence à execução (`--install`), não à receita do projeto. `new` aceita `--node-version`, `--module-system`, `--setup-node`, `--git`, `--github` e `--push` conforme o [guia de uso](../README.md).
 
 No layout `split`, a interface deve aceitar `--web-dir` e `--api-dir` para destinos independentes. As flags `--image-web`/`--image-api` definem referências de imagem; para projetos individuais, aceitar `--image`. Os endereços `registry.example.com` são placeholders e precisam ser substituídos antes de construir/publicar/aplicar recursos.
 
@@ -97,9 +97,9 @@ No layout `split`, a interface deve aceitar `--web-dir` e `--api-dir` para desti
 - Linux e WSL primeiro, com chamadas utilizáveis em Bash, Zsh e POSIX sh. O binário não exige shell para gerar arquivos.
 - Scripts opcionais usam `#!/bin/sh` se forem POSIX; scripts que exigirem Bash declaram essa dependência. Não executar um script Bash com `sh`.
 - Sem argumentos suficientes e sem TTY: erro explicativo; nunca aguardar uma resposta invisível em CI.
-- `--non-interactive` não inicia prompts; `--install yes|no` decide instalação, sem implicar execução de serviços.
+- `--non-interactive` não inicia prompts; `new` exige `--install yes|no` nesse modo, sem implicar execução de serviços.
 - Proposta de códigos de saída: 0 sucesso; 1 falha de geração/instalação; 2 entrada incompatível ou inválida; 130 cancelamento.
 - Rejeitar destino existente na primeira versão, inclusive diretório vazio ou symlink. Validar nomes, destinos sobrepostos no layout separado e caminhos dos templates antes de escrever.
 - Falha de renderização limpa apenas a área temporária desta execução. Falha de instalação preserva os fontes gerados e informa como repetir a instalação.
-- Não inicializar repositórios Git ou configurar remotes sem opção explícita. Layout separado cria duas raízes independentes e guias para versioná-las.
+- Git local é padrão e pode ser desativado com `--git no`, conforme a decisão revisada. GitHub privado e push continuam escolhas explícitas e separadas. Layout separado cria duas raízes com repositórios independentes.
 - Usar argumentos estruturados de processo em Rust, sem construir comandos com `sh -c` e dados fornecidos pelo usuário.

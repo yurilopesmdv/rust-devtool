@@ -13,6 +13,8 @@ id = "python-fastapi"
 role = "backend"
 language = "Python"
 framework = "FastAPI"
+port = 3000
+container_port = 3000
 architecture = "layered"
 status = "planned"
 package_manager = "uv"
@@ -60,6 +62,6 @@ Inclua testes com a nova estrutura e com uma opção incompatível. Já existe u
 
 Quando o renderer existir, acrescente fontes, configuração de runtime, comandos de build/test/lint e documentação. Implemente adapters por stack para as capacidades anunciadas: banco, cache, segredos, observabilidade e empacotamento. Fixe versões e valide lockfiles, builds e os comandos publicados.
 
-Teste ao menos a base mínima, a ausência de módulos opcionais, as integrações suportadas e a conexão com um frontend quando aplicável. Só então altere o status para `ready` e disponibilize a stack em `new`. Não basta mudar o status no TOML: o comando `new` ainda não existe nesta etapa.
+Teste ao menos a base mínima, a ausência de módulos opcionais, as integrações suportadas e a conexão com um frontend quando aplicável. Só então altere o status para `ready` e disponibilize a stack em `new`. Não basta mudar o status no TOML: new exige fontes embutidas para o ID e rejeita integrações sem adapter. Os assets ficam em `templates/<id>/`; os arquivos opcionais de Compose ficam em `@compose/`. Consulte [manutenção por agentes](manutencao-por-agentes.md).
 
 Java e Go seguirão o mesmo processo, com ferramentas próprias e seus caminhos convencionais. Não há templates dessas linguagens nem instaladores de runtimes nesta revisão.

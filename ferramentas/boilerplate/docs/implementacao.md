@@ -1,6 +1,6 @@
 # Plano de implementação e validação
 
-[Índice](README.md). Etapa 1 entregue: catálogo embutido, receitas/flags, validação, plano e doctor. A geração começa na etapa 2.
+[Índice](README.md). Etapas 1–3 entregues: núcleo, assistente e geração das seis bases, instalação de dependências e Git/GitHub. A etapa 5 tem geração de Dockerfile/Compose, mas falta validar a execução das imagens. Etapas avançadas continuam abaixo.
 
 ## Organização interna
 
@@ -23,7 +23,7 @@ ferramentas/boilerplate/
   docs/
 ```
 
-Renderização, escrita, instalação e assistente ganharão módulos próprios nas próximas etapas. Os templates de fontes e adapters também terão diretórios separados dos metadados. Não será necessário colocar lógica do gerador em `ferramentas/devtool/src`.
+Renderização, escrita, instalação, Git/GitHub e assistente já estão em módulos de `src/generator/`. As fontes e lockfiles estão em `templates/<id>/`, separados do catálogo. Não será necessário colocar lógica do gerador em `ferramentas/devtool/src`.
 
 O catálogo já é embutido no binário; sua execução não depende do cwd nem de acesso ao clone. Veja a [arquitetura do pacote](arquitetura-do-pacote.md) e [como adicionar uma stack](adicionar-stack.md).
 
@@ -45,14 +45,14 @@ Publicar arquivos via staging no mesmo filesystem, verificando que o destino con
 | --- | --- | --- |
 | 0 — concluída | Especificação e catálogo pretendido | Fluxo, opções, limites e documentação registrados |
 | 1 — concluída | Núcleo Rust + templates list/show + plan + doctor | Receitas/flags validadas, plano sem efeitos e requisitos por operação |
-| 2 | new + assistente + Express/TS e React/Vite | Geração individual e fullstack; testes/build reais das bases; instalação opcional |
-| 3 | Vanilla, Next, Nest e Axum | Seis bases e nove pares mínimos validados; organização respeita cada stack |
+| 2 — concluída | new + assistente + Express/TS e React/Vite | Geração individual e fullstack; testes/build reais das bases; instalação opcional |
+| 3 — concluída | Vanilla, Next, Nest e Axum | Seis bases e nove pares mínimos validados; organização respeita cada stack |
 | 4 | PostgreSQL, MongoDB e Redis | Integrações por backend e ausência completa quando desativadas |
-| 5 | Docker/Compose e contratos web/API | Imagens construídas, conexão válida e redes documentadas para os dois layouts |
+| 5 — parcial | Docker/Compose e contratos web/API | Imagens construídas, conexão válida e redes documentadas para os dois layouts |
 | 6 | Kubernetes | Manifests válidos, saúde/Services/imagens/volumes consistentes e guia manual |
 | 7 | Prometheus/Grafana | Métricas reais coletáveis, targets e dashboards funcionais |
 | 8 | Vault | Aplicação lê segredos pelo contrato; integração Compose/Kubernetes validada |
-| 9 | Distribuição e documentação final | Instalação/distribuição do boilerplate, independência da devtool e guias completos revisados |
+| 9 — parcial | Distribuição e documentação final | Instalação/distribuição do boilerplate, independência da devtool e guias completos revisados |
 
 As etapas organizam o trabalho; não retiram opções do escopo final aprovado. Só anunciar uma integração como disponível depois de validá-la. Não transformar uma fase parcial em um catálogo que aceita flags sem implementar seu efeito.
 
@@ -74,4 +74,4 @@ Execuções de teste de infraestrutura pertencem a ambiente isolado de validaç�
 
 Uma combinação só está pronta quando: arquivos são gerados corretamente; dependências e build passam; comportamento demonstrativo funciona; opções ausentes não deixam código residual; os passos documentados reproduzem o ambiente; e os limites estão explícitos. As aulas e os comandos existentes continuam verificados.
 
-O núcleo já tem testes de validação, nove pares fullstack, extensão declarativa de linguagem, omissão de módulos, caminhos/symlinks, receitas, precedência e CLI sem ferramentas externas. Os testes de build das aplicações e de infraestrutura pertencem às etapas de geração.
+O núcleo já tem testes de validação, nove pares fullstack, extensão declarativa de linguagem, omissão de módulos, caminhos/symlinks, receitas, precedência e CLI sem ferramentas externas. Os testes de geração também verificam arquivos, layouts, ESM/CommonJS, staging, ausência de escrita para adapters indisponíveis e Git/GitHub com comandos simulados. As quatro bases Node foram instaladas e passaram em typecheck/test/build; Rust/Axum passou em test/Clippy. A execução de imagens/infraestrutura não foi validada nesta entrega.

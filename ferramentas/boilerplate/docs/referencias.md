@@ -28,3 +28,10 @@ A proposta para este repositório preserva essa experiência com núcleo Rust e 
 ## O que é decisão deste projeto
 
 O catálogo de seis stacks, a arquitetura em camadas, os layouts de repositório, o formato da receita, as opções `none`, o contrato de arquivos de segredos, os limites de execução e a sequência de implementação são decisões/propostas locais. As fontes explicam os mecanismos utilizados; não validam automaticamente os templates ou suas combinações. Essa validação faz parte das próximas entregas.
+
+## Criação, Node e GitHub
+
+- [nvm: instalação e atualização](https://github.com/nvm-sh/nvm#installing-and-updating): função de shell, versões e carregamento; o gerador usa clone versionado sem alterar perfis.
+- [Node: packages/type](https://nodejs.org/api/packages.html#type): interpretação ESM/CommonJS por package.json.
+- [gh repo create](https://cli.github.com/manual/gh_repo_create): criação privada a partir do repositório local e push explícito.
+- [rustix renameat_with](https://docs.rs/rustix/latest/rustix/fs/fn.renameat_with.html): publicação Linux com NOREPLACE, sem substituir o destino.

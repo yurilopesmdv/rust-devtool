@@ -1,6 +1,6 @@
 # Catálogo e arquitetura
 
-[Índice](README.md). Estruturas e integrações abaixo são contratos para a implementação futura.
+[Índice](README.md). As seis bases já têm fontes geráveis. As integrações de dados/cache/monitoria/segredos abaixo continuam contratos para adapters futuros; Compose está disponível como arquivos, ainda sem validação de execução de imagens.
 
 ## Catálogo inicial
 

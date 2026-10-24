@@ -19,14 +19,16 @@ TOML/schema validado ─┘                          ↑
 
 `planner.rs` valida papéis, destinos, layouts, escolhas de serviços e capacidades. Calcula caminhos a partir dos metadados, com caminhos condicionais por integração. Não executa comandos externos, não consulta runtimes nem escreve no destino. Consultas de filesystem servem para verificar destinos e resolver ancestrais existentes.
 
-`doctor.rs` é a única camada desta etapa que executa ferramentas externas. Usa `std::process::Command` com programa/argumentos separados e stdin fechado. Os comandos de versão vêm do catálogo confiável embutido ou da lista interna de ferramentas de infraestrutura; receitas não podem introduzir comandos arbitrários.
+`doctor.rs` executa consultas de diagnóstico. A geração tem sua própria camada de operações em `src/generator/`: runtime, Git/GitHub e instalação. Usa `std::process::Command` com programa/argumentos separados e stdin fechado. Os comandos de versão vêm do catálogo confiável embutido ou da lista interna de ferramentas de infraestrutura; receitas não podem introduzir comandos arbitrários.
 
 `main.rs` cuida da apresentação e dos códigos de saída. Planos e diagnósticos podem ser consumidos em JSON sem interpretar texto de terminal. A biblioteca permite testar o núcleo sem simular entrada interativa.
 
-## Fronteiras para as próximas etapas
+## Camadas da geração
 
-O assistente deverá produzir a mesma Recipe usada pelas flags. O renderer deverá consumir o plano e templates/adapters versionados. O writer deverá publicar somente em destinos novos e implementar recuperação de falhas. O installer deverá receber comandos estruturados e a decisão explícita de instalar.
+O assistente já produz a mesma Recipe das flags. O renderer usa fontes/lockfiles embutidos e arquivos condicionais; o writer usa staging e rename sem substituição. O runtime instala apenas quando escolhido, com nvm/Node já existentes ou preparados após autorização. VCS trata Git local, GitHub privado e push em etapas separadas.
+
+Veja [manutenção por agentes](manutencao-por-agentes.md) para os módulos, contratos e testes.
 
 Nenhuma dessas camadas inicia infraestrutura. Os futuros arquivos de Compose/Kubernetes e seus guias pertencem ao projeto gerado. As execuções avulsas de utilitários continuam exclusivamente em devtool.
 
-O catálogo atual contém intenções de capacidades; ainda não é uma promessa de que há código gerável para elas. Status `planned` e `planning-only` tornam essa distinção explícita na interface.
+O catálogo atual contém intenções de capacidades; ainda não é uma promessa de que há código gerável para elas. Status `ready` se refere às bases; `planning-only` continua identificando a saída sem efeitos de plan. `new` rejeita integrações sem adapters, mesmo quando elas estão descritas no catálogo.

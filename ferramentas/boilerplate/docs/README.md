@@ -1,6 +1,6 @@
 # Gerador de projetos web — especificação
 
-Status: núcleo de planejamento implementado em pacote independente. `boilerplate templates`, `plan` e `doctor` funcionam. A geração (`new`), o assistente e os adapters ainda não foram implementados. Consulte o [README do pacote](../README.md) para os comandos disponíveis.
+Status: catálogo, planejamento, doctor, geração (`new`), assistente, instalação de dependências e Git/GitHub estão implementados em pacote independente. As seis bases e arquivos Compose estão disponíveis; os adapters de dados/cache/Kubernetes/monitoria/Vault continuam no plano. Consulte o [README do pacote](../README.md) para os comandos disponíveis.
 
 ## Objetivo e escopo definido
 
@@ -29,9 +29,9 @@ A decisão final de não executar infraestrutura substitui a proposta inicial de
 | [Plano de implementação](implementacao.md) | Módulos Rust, entregas, testes e critérios de conclusão |
 | [Fontes e decisões](referencias.md) | Documentação oficial consultada e justificativas |
 
-## Núcleo já disponível
+## Funcionalidades disponíveis
 
-Consulte a [arquitetura do pacote](arquitetura-do-pacote.md) e o [guia de extensão de linguagens](adicionar-stack.md). O pacote é independente de devtool e executa em WSL/Linux.
+Consulte [criação e instalação](criacao-e-instalacao.md), [Git/GitHub](git-e-github.md), [manutenção por agentes](manutencao-por-agentes.md), a [arquitetura do pacote](arquitetura-do-pacote.md) e o [guia de extensão de linguagens](adicionar-stack.md). O pacote é independente de devtool e executa em WSL/Linux.
 
 ## Exemplo de resultado esperado
 
@@ -39,4 +39,4 @@ Uma escolha de React/Vite + Express/TS, PostgreSQL, Redis, Docker/Compose, Kuber
 
 A mesma escolha sem banco, cache e infraestrutura deve gerar somente as aplicações, os testes, a configuração básica e sua documentação. Não deve haver imports quebrados ou parâmetros obrigatórios de serviços omitidos.
 
-As combinações podem ser planejadas, mas ainda não podem ser geradas. A geração depende das próximas etapas de implementação e validação. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.
+As combinações das bases podem ser geradas nos dois layouts. O exemplo completo com dados/monitoria/segredos desta seção continua um resultado esperado para etapas futuras. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.
