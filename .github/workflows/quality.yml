@@ -116,3 +116,24 @@ jobs:
 
       - name: Validate generated application
         run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks python-fastapi
+
+  generated-rust:
+    name: Generated Rust (Axum)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+
+      - name: Validate generated application
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/rust-boilerplate-generated-target
+        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks rust-axum

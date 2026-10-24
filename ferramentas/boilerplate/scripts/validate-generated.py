@@ -181,7 +181,7 @@ def main():
                             "local",
                         ]
                     )
-                run(command, repo, env)
+                run(command, root, env)
                 app_env = env.copy()
                 if args.with_services and backend:
                     app_env["DATABASE_URL"] = env[
