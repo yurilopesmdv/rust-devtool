@@ -5,7 +5,7 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     let cache = r.backend.cache == Some(Cache::Redis);
     let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
     let vault = r.infrastructure.secrets == Some(Secrets::Vault);
-    let mut cargo = files[&prefix.join("Cargo.toml")]
+    let mut cargo = source_mut(files, prefix, "Cargo.toml")?
         .parse::<toml::Table>()
         .map_err(|e| Error::operation(e.to_string()))?;
     let dependencies = cargo
@@ -149,36 +149,64 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
             .push_str("crate::infrastructure::cache::set(\"example\",&value.to_string()).await;\n");
     }
     service.push_str("Ok(value)");
-    let mut example = format!(
-        "{}\nasync fn service()->Result<serde_json::Value,crate::infrastructure::Failure>{{{service}}}\npub async fn controller()->Result<axum::Json<serde_json::Value>,(axum::http::StatusCode,&'static str)>{{service().await.map(axum::Json).map_err(|_|(axum::http::StatusCode::INTERNAL_SERVER_ERROR,\"Dependência indisponível ou banco não preparado\"))}}\n",
+    let cache_key = format!("\"{}:example\"", cargo["package"]["name"].as_str().unwrap());
+    let get_body = service
+        .replace("\"example\"", &cache_key)
+        .lines()
+        .map(|line| format!("    {line}\n"))
+        .collect::<String>();
+    let mut service_source =
+        include_str!("../../../integrations/rust/example-service.rs").to_string();
+    replace_source(
+        &mut service_source,
+        "rust/example-service.rs",
+        "// @boilerplate:imports\n",
         if db != Database::None {
-            "pub mod repositories;"
+            "use super::repositories;\n"
         } else {
             ""
-        }
-    );
+        },
+    )?;
+    replace_source(
+        &mut service_source,
+        "rust/example-service.rs",
+        "    // @boilerplate:get\n",
+        &get_body,
+    )?;
+    let mut write_service = String::new();
     if db != Database::None {
-        example.push_str(&format!("pub async fn write_controller(axum::Json(body):axum::Json<serde_json::Value>)->Result<axum::Json<serde_json::Value>,(axum::http::StatusCode,&'static str)>{{let message=body.get(\"message\").and_then(|v|v.as_str()).filter(|s|!s.is_empty()&&s.chars().count()<=200).ok_or((axum::http::StatusCode::BAD_REQUEST,\"message precisa conter 1 a 200 caracteres\"))?;repositories::write(message).await.map_err(|_|(axum::http::StatusCode::INTERNAL_SERVER_ERROR,\"Falha de persistência\"))?;{}Ok(axum::Json(serde_json::json!({{\"message\":message}})))}}\n",if cache{"crate::infrastructure::cache::remove(\"example\").await;"}else{""}));
+        write_service =
+            include_str!("../../../integrations/rust/example-write-service.rs").to_string();
+        let invalidation = if cache {
+            format!("    crate::infrastructure::cache::remove({cache_key}).await;\n")
+        } else {
+            String::new()
+        };
+        replace_source(
+            &mut write_service,
+            "rust/example-write-service.rs",
+            "    // @boilerplate:invalidate\n",
+            &invalidation,
+        )?;
     }
-    let example = example.replace(
-        "\"example\"",
-        &format!("\"{}:example\"", cargo["package"]["name"].as_str().unwrap()),
-    );
-    let service_start = example.find("async fn service()").unwrap();
-    let controller_start = example.find("pub async fn controller()").unwrap();
-    let mut service_source = example[service_start..controller_start]
-        .replace("async fn service()", "pub async fn get()");
-    if db != Database::None {
-        service_source.insert_str(0, "use super::repositories;\n");
-    }
+    replace_source(
+        &mut service_source,
+        "rust/example-service.rs",
+        "// @boilerplate:write\n",
+        &write_service,
+    )?;
     let mut controllers =
-        example[controller_start..].replace("service().await", "super::service::get().await");
-    if db != Database::None {
-        let write_start = controllers.find("pub async fn write_controller").unwrap();
-        controllers.truncate(write_start);
-        controllers.push_str("pub async fn write_controller(axum::Json(body):axum::Json<serde_json::Value>)->Result<axum::Json<serde_json::Value>,(axum::http::StatusCode,&'static str)>{let message=body.get(\"message\").and_then(|v|v.as_str()).filter(|s|!s.is_empty()&&s.chars().count()<=200).ok_or((axum::http::StatusCode::BAD_REQUEST,\"message precisa conter 1 a 200 caracteres\"))?;super::service::write(message).await.map(axum::Json).map_err(|_|(axum::http::StatusCode::INTERNAL_SERVER_ERROR,\"Falha de persistência\"))}\n");
-        service_source.push_str(&format!("pub async fn write(message:&str)->Result<serde_json::Value,crate::infrastructure::Failure>{{repositories::write(message).await?;{}Ok(serde_json::json!({{\"message\":message}}))}}\n",if cache{format!("crate::infrastructure::cache::remove(\"{}:example\").await;",cargo["package"]["name"].as_str().unwrap())}else{String::new()}));
-    }
+        include_str!("../../../integrations/rust/example-controller.rs").to_string();
+    replace_source(
+        &mut controllers,
+        "rust/example-controller.rs",
+        "// @boilerplate:write\n",
+        if db != Database::None {
+            include_str!("../../../integrations/rust/example-write-controller.rs")
+        } else {
+            ""
+        },
+    )?;
     insert(
         files,
         prefix,
@@ -204,8 +232,9 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
             }
         ),
     );
+    let base_library = source_mut(files, prefix, "src/lib.rs")?;
     let origin = r.infrastructure.frontend_origin.clone().unwrap_or_else(|| {
-        let port = files[&prefix.join("src/lib.rs")]
+        let port = base_library
             .split("http://localhost:")
             .nth(1)
             .and_then(|s| s.split('"').next())
@@ -255,9 +284,7 @@ pub fn app()->Router{{
     } else {
         name
     };
-    files
-        .get_mut(&prefix.join("src/main.rs"))
-        .unwrap()
+    source_mut(files, prefix, "src/main.rs")?
         .insert_str(0, &format!("use {crate_name}::infrastructure;\n"));
     replace(
         files,

@@ -17,7 +17,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T007](tasks/T007.md) | P1 | concluída localmente; CI remoto pendente | Checagem dos links locais de documentação | T001 |
 | [T008](tasks/T008.md) | P1 | concluída | Contratos exatos para pontos de extensão | T001 |
 | [T009](tasks/T009.md) | P1 | concluída | Extrair lifecycle Node para fragmentos legíveis | T008 |
-| [T010](tasks/T010.md) | P1 | pendente | Extrair composição de service Rust | T008 |
+| [T010](tasks/T010.md) | P1 | concluída | Extrair composição de service Rust | T008 |
 | [T011](tasks/T011.md) | P1 | pendente | Gerar snapshots de locks Rust por comando | T005 |
 | [T012](tasks/T012.md) | P1 | pendente | Gerar snapshots de locks Python por comando | T004 |
 | [T013](tasks/T013.md) | P1 | pendente | Atualizar locks npm base e superset | T003 |
