@@ -31,6 +31,23 @@ choice!(Monitoring {
 });
 choice!(Secrets { Env, Vault });
 
+choice!(ModuleSystem { Esm, Commonjs });
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Toolchain {
+    pub node_version: String,
+    pub module_system: ModuleSystem,
+}
+impl Default for Toolchain {
+    fn default() -> Self {
+        Self {
+            node_version: "24".into(),
+            module_system: ModuleSystem::Esm,
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Project {
@@ -82,6 +99,7 @@ pub struct Recipe {
     pub frontend: Frontend,
     pub backend: Backend,
     pub infrastructure: Infrastructure,
+    pub toolchain: Toolchain,
 }
 
 impl Recipe {

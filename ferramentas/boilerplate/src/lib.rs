@@ -2,6 +2,7 @@ pub mod catalog;
 pub mod cli;
 pub mod config;
 pub mod doctor;
+pub mod generator;
 pub mod planner;
 
 use std::fmt;

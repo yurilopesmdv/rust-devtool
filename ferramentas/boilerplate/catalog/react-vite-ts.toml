@@ -2,12 +2,15 @@ id = "react-vite-ts"
 role = "frontend"
 language = "TypeScript"
 framework = "React + Vite"
+port = 5173
+container_port = 8080
 architecture = ""
-status = "planned"
+status = "ready"
 package_manager = "npm"
 paths = ["src/app/", "src/pages/", "src/components/", "src/features/", "src/services/", "src/styles/", "docs/"]
 capabilities = ["compose", "kubernetes", "prometheus-grafana-container"]
-install = ["npm", "install"]
+module_systems = ["esm"]
+install = ["npm", "ci"]
 
 [[requirements]]
 command = "node"

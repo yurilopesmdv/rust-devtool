@@ -27,12 +27,17 @@ pub struct Template {
     pub role: ProjectType,
     pub language: String,
     pub framework: String,
+    #[serde(default)]
+    pub port: u16,
+    pub container_port: Option<u16>,
     pub architecture: String,
     pub status: Status,
     pub package_manager: String,
     pub paths: Vec<String>,
     pub capabilities: Vec<String>,
     pub install: Vec<String>,
+    #[serde(default)]
+    pub module_systems: Vec<String>,
     #[serde(default)]
     pub requirements: Vec<Requirement>,
     #[serde(default)]

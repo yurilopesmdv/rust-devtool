@@ -4,7 +4,7 @@ use rust_boilerplate::{
     catalog::Catalog,
     cli::{Cli, Command, Templates},
     config::Recipe,
-    doctor, planner,
+    doctor, generator, planner,
 };
 use std::process::ExitCode;
 
@@ -27,7 +27,7 @@ fn run() -> Result<(), Error> {
                 json(&catalog.templates)?;
             } else {
                 println!(
-                    "Catálogo 1 — todas as bases estão planejadas; geração ainda indisponível."
+                    "Catálogo 1 — bases web disponíveis; integrações avançadas continuam no plano."
                 );
                 for t in &catalog.templates {
                     println!(
@@ -56,7 +56,7 @@ fn run() -> Result<(), Error> {
                     t.package_manager
                 );
                 println!(
-                    "Geração indisponível; versões de bibliotecas ainda serão fixadas e validadas."
+                    "Consulte new --help para criar a base; capacidades avançadas podem estar apenas planejadas."
                 );
                 for requirement in &t.requirements {
                     println!(
@@ -66,13 +66,14 @@ fn run() -> Result<(), Error> {
                 }
             }
         }
+        Command::New(args) => generator::run(*args, &catalog)?,
         Command::Plan(args) => {
             let cwd = std::env::current_dir().map_err(|e| Error::operation(e.to_string()))?;
             let plan = planner::build(args.recipe()?, &catalog, &cwd)?;
             if args.json {
                 json(&plan)?;
             } else {
-                println!("Plano de intenção — geração ainda indisponível");
+                println!("Plano de projeto — não cria arquivos nem executa ferramentas");
                 for app in &plan.applications {
                     println!(
                         "\n{} ({}) → {}",

@@ -2,11 +2,14 @@ id = "rust-axum"
 role = "backend"
 language = "Rust"
 framework = "Axum + Tokio"
+port = 3000
+container_port = 3000
 architecture = "layered"
-status = "planned"
+status = "ready"
 package_manager = "cargo"
 paths = ["src/config/", "src/http/", "src/modules/example/", "tests/", "docs/"]
 capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+module_systems = []
 install = ["cargo", "fetch", "--locked"]
 
 [[requirements]]

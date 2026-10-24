@@ -2,12 +2,15 @@ id = "next-ts"
 role = "frontend"
 language = "TypeScript"
 framework = "Next.js"
+port = 3001
+container_port = 3001
 architecture = ""
-status = "planned"
+status = "ready"
 package_manager = "npm"
 paths = ["src/app/", "src/components/", "src/features/", "src/services/", "docs/"]
 capabilities = ["compose", "kubernetes", "prometheus-grafana"]
-install = ["npm", "install"]
+module_systems = ["esm"]
+install = ["npm", "ci"]
 
 [[requirements]]
 command = "node"

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[command(
     name = "boilerplate",
     version,
-    about = "Planejamento de projetos web; geração ainda em desenvolvimento"
+    about = "Criação e planejamento de projetos web em WSL/Linux"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -22,6 +22,8 @@ pub enum Command {
     },
     /// Valida escolhas e imprime um plano, sem criar arquivos ou executar ferramentas.
     Plan(Box<PlanArgs>),
+    /// Cria projetos em destinos novos, sem iniciar aplicações ou infraestrutura.
+    New(Box<NewArgs>),
     /// Verifica executáveis no PATH, sem consultar daemons ou instalar ferramentas.
     Doctor {
         #[arg(long)]
@@ -97,6 +99,10 @@ pub struct PlanArgs {
     pub non_interactive: bool,
     #[arg(long)]
     pub json: bool,
+    #[arg(long)]
+    pub node_version: Option<String>,
+    #[arg(long, value_enum)]
+    pub module_system: Option<ModuleSystem>,
 }
 
 impl PlanArgs {
@@ -134,6 +140,12 @@ impl PlanArgs {
         apply!(r.infrastructure.image, self.image);
         apply!(r.infrastructure.image_web, self.image_web);
         apply!(r.infrastructure.image_api, self.image_api);
+        if let Some(version) = &self.node_version {
+            r.toolchain.node_version = version.clone();
+        }
+        if let Some(system) = self.module_system {
+            r.toolchain.module_system = system;
+        }
         // Desativar uma opção por flag também remove a localização herdada.
         if self.database == Some(Database::None) && self.database_location.is_none() {
             r.backend.database_location = None;
@@ -148,4 +160,38 @@ impl PlanArgs {
         r.catalog_version = Some(crate::catalog::VERSION.to_string());
         Ok(r)
     }
+}
+
+#[derive(Clone, Copy, Debug, clap::ValueEnum, PartialEq)]
+pub enum Decision {
+    Yes,
+    No,
+}
+
+#[derive(Debug, Args)]
+pub struct NewArgs {
+    #[command(flatten)]
+    pub plan: PlanArgs,
+    /// Instalar dependências. Sem flag, pergunta em TTY; em CI é obrigatório.
+    #[arg(long, value_enum)]
+    pub install: Option<Decision>,
+    /// Autoriza instalação de nvm/Node, caso necessário; nunca altera o shell do usuário.
+    #[arg(long, value_enum)]
+    pub setup_node: Option<Decision>,
+    /// Inicializar Git local (padrão yes).
+    #[arg(long, value_enum, default_value = "yes")]
+    pub git: Decision,
+    /// Criar repositório privado com gh. Pergunta em TTY; padrão no em CI.
+    #[arg(long, value_enum)]
+    pub github: Option<Decision>,
+    /// Nome remoto owner/repo; split usa --github-web e --github-api.
+    #[arg(long)]
+    pub github_repo: Option<String>,
+    #[arg(long)]
+    pub github_web: Option<String>,
+    #[arg(long)]
+    pub github_api: Option<String>,
+    /// Autoriza commit inicial e push; exige GitHub selecionado.
+    #[arg(long, value_enum)]
+    pub push: Option<Decision>,
 }

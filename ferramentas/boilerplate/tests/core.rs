@@ -323,8 +323,8 @@ fn doctor_requirements_are_selected_without_daemon_probes() {
 }
 
 #[test]
-fn cli_rejects_typos_and_does_not_accept_new_before_generator_exists() {
-    assert!(Cli::try_parse_from(["boilerplate", "new", "api"]).is_err());
+fn cli_rejects_typos_and_accepts_new() {
+    assert!(Cli::try_parse_from(["boilerplate", "new", "api"]).is_ok());
     assert!(Cli::try_parse_from(["boilerplate", "plan", "api", "--databse", "none"]).is_err());
     assert!(matches!(
         Cli::try_parse_from(["boilerplate", "plan", "--non-interactive"])

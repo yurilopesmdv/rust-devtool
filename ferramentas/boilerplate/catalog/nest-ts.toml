@@ -2,12 +2,15 @@ id = "nest-ts"
 role = "backend"
 language = "TypeScript"
 framework = "NestJS"
+port = 3000
+container_port = 3000
 architecture = "layered"
-status = "planned"
+status = "ready"
 package_manager = "npm"
 paths = ["src/config/", "src/common/middlewares/", "src/modules/example/", "test/", "docs/"]
 capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
-install = ["npm", "install"]
+module_systems = ["esm"]
+install = ["npm", "ci"]
 
 [[requirements]]
 command = "node"

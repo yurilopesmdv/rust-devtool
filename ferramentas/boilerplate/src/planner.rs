@@ -126,6 +126,10 @@ fn location(enabled: bool, value: Option<Location>, label: &str) -> Result<(), E
 }
 
 pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error> {
+    require(
+        crate::generator::runtime::valid_node_version(&r.toolchain.node_version),
+        "Versão Node deve ser numérica (22.12+ ou major 22/24+); aliases e comandos não são aceitos",
+    )?;
     let kind = r
         .project
         .kind
@@ -335,6 +339,17 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
             dir,
         ));
     }
+    for (t, _) in &selected {
+        let system = if r.toolchain.module_system == ModuleSystem::Esm {
+            "esm"
+        } else {
+            "commonjs"
+        };
+        require(
+            t.module_systems.is_empty() || t.module_systems.iter().any(|s| s == system),
+            &format!("{} não suporta módulos {system}", t.id),
+        )?;
+    }
     if split {
         require(
             !selected[0].1.starts_with(&selected[1].1)
@@ -442,9 +457,9 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
         omitted,
         infrastructure_paths,
         notes: vec![
-            "Plano de intenção: templates e adapters ainda não foram implementados; nenhum arquivo foi criado.".into(),
-            "Versões de frameworks, drivers e imagens de serviços serão fixadas com os templates validados.".into(),
-            "URLs, portas, CORS, manifests detalhados e instalação interativa pertencem às próximas etapas.".into(),
+            "Este comando apenas planeja; new gera bases e Compose, e rejeita adapters avançados ainda não implementados.".into(),
+            "Versões de dependências das bases estão nos templates; drivers e serviços avançados ainda dependem de adapters.".into(),
+            "new usa API local na porta 3000, frontend em 5173 (Next em 3001) e CORS correspondente.".into(),
             "Nenhuma instalação, container, daemon ou cluster foi executado/consultado pelo planejador.".into(),
         ],
     })
