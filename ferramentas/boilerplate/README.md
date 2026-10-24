@@ -1,10 +1,10 @@
 # Boilerplate web — CLI Rust para WSL/Linux
 
-Pacote `rust-boilerplate`, executável `boilerplate`. Este pacote é independente de `ferramentas/devtool`: utilitários de hash/JSON continuam lá; catálogo, planejamento e futuras integrações de projetos ficam aqui.
+Pacote `rust-boilerplate`, executável `boilerplate`. Este pacote é independente de `ferramentas/devtool`: utilitários de hash/JSON continuam lá; catálogo, planejamento e integrações de projetos ficam aqui.
 
-**Disponível agora:** catálogo, receitas, planos, diagnóstico e `new` com assistente, geração das seis bases, instalação local de dependências, seleção de Node/nvm, Git local e GitHub privado opcional. Dockerfile/.dockerignore/Compose podem ser gerados. As bases estão `ready`; as capacidades avançadas do catálogo continuam sendo intenções, não adapters entregues.
+**Disponível:** seis bases web, assistente, receitas/planos, instalação local de dependências, Node/nvm, Git/GitHub, PostgreSQL/MongoDB, Redis, Docker/Compose, Kubernetes, Prometheus/Grafana e Vault opcionais. Cada opção desativada é omitida dos fontes, dependências e recursos.
 
-**Ainda no plano:** geração de PostgreSQL/MongoDB/Redis, Kubernetes, Prometheus/Grafana e Vault. `new` rejeita essas integrações antes de criar arquivos; `plan` continua permitindo estudar as combinações. Nenhum serviço é iniciado automaticamente.
+O gerador cria arquivos e instala bibliotecas quando autorizado; não inicia infraestrutura, cria cluster ou faz publicação sem escolha explícita. Veja [integrações e exemplos completos](docs/integracoes.md) e [validação e limites do ambiente](docs/validacao.md).
 
 ## Requisitos e instalação
 
@@ -36,7 +36,7 @@ Para o assistente, na raiz do repositório:
 cargo run -p rust-boilerplate -- new
 ```
 
-Ele pede nome, tipo, layout fullstack, destino(s), stack(s), versão Node quando aplicável e opção Compose. O destino precisa ser um diretório novo. Para Express sozinho, permite escolher ESM/CommonJS; ESM é o padrão. Mostra o resumo, confirma a criação, inicializa Git local e pergunta sobre dependências, GitHub privado e push separadamente. Quando os argumentos/receita já fornecem as escolhas, o assistente só pergunta o que falta.
+Ele pede nome, tipo, layout fullstack, destino(s), stack(s), versão Node quando aplicável e integrações opcionais de dados, cache, containers, Kubernetes, monitoria e segredos. O destino precisa ser um diretório novo. Para Express sozinho, permite escolher ESM/CommonJS; ESM é o padrão. Mostra o resumo, confirma a criação, inicializa Git local e pergunta sobre dependências, GitHub privado e push separadamente. Quando os argumentos/receita já fornecem as escolhas, o assistente só pergunta o que falta.
 
 Exemplo reproduzível sem perguntas e sem publicar no GitHub:
 
@@ -88,6 +88,8 @@ Nomes usam até 63 caracteres: letra minúscula inicial, a-z, números e hífen,
 
 ## Dados, cache e infraestrutura
 
+Essas opções também funcionam em `new`, não apenas em `plan`. Em TTY, o assistente pergunta pelos módulos aplicáveis ao tipo de projeto. O projeto recebe `docs/OPERACAO.md` com instalação, bootstrap, execução manual e diagnóstico de cada módulo selecionado.
+
 ```sh
 cargo run -p rust-boilerplate -- plan api-completa \
   --type backend --backend express-ts \
@@ -99,7 +101,7 @@ cargo run -p rust-boilerplate -- plan api-completa \
   --secrets vault --vault-location local --json
 ```
 
-O endereço de imagem acima é um exemplo a substituir antes de uma futura implantação. Nesta etapa, referências aceitam tags explícitas diferentes de `latest`; digests não estão implementados. Sem Dockerfile planejado, Kubernetes exige referência de imagem para cada aplicação (`--image` ou `--image-web`/`--image-api`).
+O endereço de imagem acima é um exemplo a substituir antes da implantação. Referências aceitam tag explícita diferente de latest ou digest sha256 válido. Sem Dockerfile planejado, Kubernetes exige referência de imagem para cada aplicação (`--image` ou `--image-web`/`--image-api`).
 
 | Opção | Valores |
 | --- | --- |
@@ -110,10 +112,12 @@ O endereço de imagem acima é um exemplo a substituir antes de uma futura impla
 | `--kubernetes` | `none`, `manifests` |
 | `--monitoring` | `none`, `prometheus-grafana` |
 | `--secrets` | `env`, `vault` |
+| `--vault-address` | Origem HTTP(S) do Vault para os Agents; sem credenciais |
+| `--api-url`, `--frontend-origin` | URL pública da API e origem permitida em CORS |
 
-`local` significa que a infraestrutura fará parte dos arquivos planejados e exige Compose ou manifests. Uma instância instalada/administrada separadamente usa `external`. `none` não cria pastas de integração nem recursos de infraestrutura. Frontend puro rejeita banco/cache/Vault. Monitoria de frontend estático exige o servidor de container planejado; em fullstack, a instrumentação HTTP proposta inicialmente pertence à API.
+`local` significa que a infraestrutura fará parte dos arquivos planejados e exige Compose ou manifests. Uma instância instalada/administrada separadamente usa `external`. `none` não cria pastas de integração nem recursos de infraestrutura. Frontend puro rejeita banco/cache/Vault. Monitoria de frontend estático exige o servidor de container planejado; em fullstack, a instrumentação HTTP pertence à API.
 
-O plano não sobe Docker nem aplica Kubernetes. Os exemplos de geração usam API em 3000, React/vanilla em 5173 e Next em 3001, com cliente HTTP e CORS coerentes. Frameworks e lockfiles das bases já estão fixados. Drivers e manifests avançados ainda não são gerados.
+O plano não sobe Docker nem aplica Kubernetes. Os exemplos de geração usam API em 3000, React/vanilla em 5173 e Next em 3001, com cliente HTTP e CORS coerentes. Frameworks, drivers e lockfiles são distribuídos com os templates. `new` também gera as configurações das integrações selecionadas.
 
 ## Receitas TOML e flags
 
@@ -156,4 +160,4 @@ cargo test -p rust-boilerplate --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). As próximas etapas implementam os adapters de dados/cache, Kubernetes, monitoria e Vault. A geração de arquivos dessas opções continua indisponível até suas validações específicas. Dockerfiles/Compose foram gerados e o Compose fullstack passou em `docker compose config --quiet`; a construção/execução das imagens ainda não foi validada nesta revisão.
+Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). A geração web e seus adapters estão implementados. A construção/execução das imagens e o deploy em cluster não foram realizados neste ambiente; consulte as [evidências de validação](docs/validacao.md). Mobile e novas stacks ficam para evolução do catálogo.

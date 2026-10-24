@@ -1,10 +1,10 @@
 # Fluxo e comandos propostos
 
-[Índice](README.md). `templates list/show`, `plan`, `doctor` e `new` já existem. O assistente atual cobre bases, destinos, módulos, Node, Compose, instalação e Git/GitHub. As perguntas sobre dados/cache/Kubernetes/monitoria/Vault abaixo descrevem a expansão futura, ainda rejeitada por new. Consulte os exemplos atuais no [guia de uso](../README.md).
+[Índice](README.md). `templates list/show`, `plan`, `doctor` e `new` já existem. O assistente atual cobre bases, destinos, módulos, Node, Compose, instalação e Git/GitHub. Dados/cache/Kubernetes/monitoria/Vault também são oferecidos para os tipos compatíveis. Consulte os exemplos atuais no [guia de uso](../README.md).
 
 ## Fluxo final especificado
 
-`boilerplate new` abre o fluxo no terminal. Cada pergunta oferece uma explicação curta e opção de voltar; mudar uma escolha invalida somente as decisões dependentes.
+`boilerplate new` abre o fluxo no terminal. O assistente completa escolhas ausentes e confirma o resumo antes de escrever. Para alterar opções, use flags/receita ou cancele antes da confirmação.
 
 1. Tipo: frontend, backend ou fullstack.
 2. Nome e destino: um diretório novo; fullstack permite monorepo ou dois diretórios para repositórios separados.
@@ -23,7 +23,7 @@ Perguntas de banco/cache/Vault ficam fora do fluxo de frontend puro. Next.js pod
 
 ## Interface por flags
 
-O executável é `boilerplate`, no pacote Cargo `rust-boilerplate`. `rust-devtool` continua independente. Abaixo há comandos atuais de consulta/plano e comandos futuros de geração, identificados nos comentários:
+O executável é `boilerplate`, no pacote Cargo `rust-boilerplate`. `rust-devtool` continua independente. Abaixo há comandos atuais de consulta/plano e comandos de geração:
 
 ```sh
 # Consultar catálogo e requisitos, sem criar um projeto.
@@ -51,7 +51,7 @@ boilerplate plan plataforma --type fullstack --layout monorepo \
   --secrets vault --vault-location local --non-interactive
 
 # O mesmo contrato de opções será aceito por new.
-# Geração a partir de uma receita mínima, sem adapters avançados.
+# Geração a partir de uma receita.
 boilerplate new minha-api --config ferramentas/boilerplate/recipes/backend.toml --install no --non-interactive
 ```
 

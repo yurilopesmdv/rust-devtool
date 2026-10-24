@@ -17,7 +17,7 @@
 - [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/): requisitos de tratamento de valores secretos; base64 não substitui proteção de segredos.
 - [Prometheus: primeiros passos](https://prometheus.io/docs/introduction/first_steps/): referência de coleta e validação de targets.
 - [Grafana provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/): configuração de datasource e dashboards por arquivos versionados.
-- [Vault Agent Injector](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/injector): referência para entrega de segredos em arquivos no Kubernetes. O adapter da aplicação precisa consumir esses arquivos.
+- [Vault: autenticação Kubernetes](https://developer.hashicorp.com/vault/docs/auth/kubernetes): autenticação do Agent initContainer, roles, ServiceAccounts e TokenReview.
 
 ## Referência local de experiência no terminal
 
@@ -35,3 +35,12 @@ O catálogo de seis stacks, a arquitetura em camadas, os layouts de repositório
 - [Node: packages/type](https://nodejs.org/api/packages.html#type): interpretação ESM/CommonJS por package.json.
 - [gh repo create](https://cli.github.com/manual/gh_repo_create): criação privada a partir do repositório local e push explícito.
 - [rustix renameat_with](https://docs.rs/rustix/latest/rustix/fs/fn.renameat_with.html): publicação Linux com NOREPLACE, sem substituir o destino.
+
+## Drivers e validação
+
+- [node-postgres](https://node-postgres.com/features/connecting): conexão/pool PostgreSQL.
+- [MongoDB Node driver](https://www.mongodb.com/docs/drivers/node/current/get-started/): cliente MongoDB.
+- [node-redis](https://redis.io/docs/latest/develop/clients/nodejs/): cliente de cache.
+- [Prometheus client Node](https://github.com/prometheus/client_js): registry e métricas HTTP/processo.
+- [SQLx](https://docs.rs/sqlx/0.8.6/sqlx/), [MongoDB Rust](https://docs.rs/mongodb/3.9.1/mongodb/) e [redis-rs](https://docs.rs/redis/0.32.7/redis/): adapters Rust.
+- [Entrypoint Vault 1.20.2](https://raw.githubusercontent.com/hashicorp/vault/v1.20.2/.release/docker/docker-entrypoint.sh): comportamento de usuário, volume /vault/file e configuração do container.

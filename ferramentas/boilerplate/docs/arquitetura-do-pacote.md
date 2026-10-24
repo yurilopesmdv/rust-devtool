@@ -31,4 +31,4 @@ Veja [manutenção por agentes](manutencao-por-agentes.md) para os módulos, con
 
 Nenhuma dessas camadas inicia infraestrutura. Os futuros arquivos de Compose/Kubernetes e seus guias pertencem ao projeto gerado. As execuções avulsas de utilitários continuam exclusivamente em devtool.
 
-O catálogo atual contém intenções de capacidades; ainda não é uma promessa de que há código gerável para elas. Status `ready` se refere às bases; `planning-only` continua identificando a saída sem efeitos de plan. `new` rejeita integrações sem adapters, mesmo quando elas estão descritas no catálogo.
+As capacidades das seis bases têm adapters em src/generator/integrations, com fontes e lockfiles de apoio em integrations/. Status ready indica a base gerável; planning-only descreve a saída sem efeitos de plan. Novas stacks precisam de adapter próprio para anunciar integrações. O núcleo continua independente de devtool.

@@ -1,6 +1,6 @@
 # Gerador de projetos web — especificação
 
-Status: catálogo, planejamento, doctor, geração (`new`), assistente, instalação de dependências e Git/GitHub estão implementados em pacote independente. As seis bases e arquivos Compose estão disponíveis; os adapters de dados/cache/Kubernetes/monitoria/Vault continuam no plano. Consulte o [README do pacote](../README.md) para os comandos disponíveis.
+Status: catálogo, planejamento, doctor, geração (`new`), assistente, instalação de dependências e Git/GitHub estão implementados em pacote independente. As seis bases e arquivos Compose estão disponíveis; os adapters de dados/cache/Kubernetes/monitoria/Vault também estão implementados. A execução de infraestrutura continua manual. Consulte o [README do pacote](../README.md) para os comandos disponíveis.
 
 ## Objetivo e escopo definido
 
@@ -31,6 +31,8 @@ A decisão final de não executar infraestrutura substitui a proposta inicial de
 
 ## Funcionalidades disponíveis
 
+Veja [integrações](integracoes.md) e [validação](validacao.md).
+
 Consulte [criação e instalação](criacao-e-instalacao.md), [Git/GitHub](git-e-github.md), [manutenção por agentes](manutencao-por-agentes.md), a [arquitetura do pacote](arquitetura-do-pacote.md) e o [guia de extensão de linguagens](adicionar-stack.md). O pacote é independente de devtool e executa em WSL/Linux.
 
 ## Exemplo de resultado esperado
@@ -39,4 +41,4 @@ Uma escolha de React/Vite + Express/TS, PostgreSQL, Redis, Docker/Compose, Kuber
 
 A mesma escolha sem banco, cache e infraestrutura deve gerar somente as aplicações, os testes, a configuração básica e sua documentação. Não deve haver imports quebrados ou parâmetros obrigatórios de serviços omitidos.
 
-As combinações das bases podem ser geradas nos dois layouts. O exemplo completo com dados/monitoria/segredos desta seção continua um resultado esperado para etapas futuras. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.
+As combinações das bases podem ser geradas nos dois layouts. O exemplo completo com dados/monitoria/segredos é gerável; é preciso preencher as configurações e executar seu bootstrap no ambiente de destino. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.

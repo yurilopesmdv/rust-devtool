@@ -1,6 +1,6 @@
 # Catálogo e arquitetura
 
-[Índice](README.md). As seis bases já têm fontes geráveis. As integrações de dados/cache/monitoria/segredos abaixo continuam contratos para adapters futuros; Compose está disponível como arquivos, ainda sem validação de execução de imagens.
+[Índice](README.md). As seis bases já têm fontes geráveis. As integrações de dados/cache/monitoria/segredos também estão implementadas nos três backends. Compose/Kubernetes são arquivos gerados; consulte validação.md para a diferença entre validação das aplicações/configurações e execução de containers/cluster.
 
 ## Catálogo inicial
 
@@ -66,7 +66,7 @@ Vanilla usa `index.html`, `assets/` e `src/scripts`, `src/styles`, `src/views`. 
 
 Sugestão de apresentação: PostgreSQL para dados relacionais e transações; MongoDB quando a aplicação pede documentos e seu modelo de consulta foi considerado. Nenhum deve ser obrigatório. Redis é cache, não a fonte primária da informação; o boilerplate deve definir quando uma falha de cache permite seguir consultando o serviço principal.
 
-As bibliotecas, versões e licenças serão avaliadas e registradas antes da implementação dos adapters. Não selecionar ORM/ODM apenas para preencher uma pasta. MongoDB não deve receber um fluxo de migrações SQL fictício.
+Os adapters atuais usam pg/SQLx para PostgreSQL, os drivers oficiais MongoDB e node-redis/redis-rs para cache; as versões ficam nos fontes e lockfiles distribuídos. Não selecionar ORM/ODM apenas para preencher uma pasta. MongoDB não deve receber um fluxo de migrações SQL fictício.
 
 ## Fullstack e repositórios separados
 

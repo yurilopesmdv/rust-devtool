@@ -30,7 +30,7 @@ Cada pasta tem explicação em português, código executável, comparação com
 
 ## Criar e planejar projetos web
 
-O pacote [boilerplate](ferramentas/boilerplate/README.md) cria as seis bases web, recebe nome/destino, instala dependências quando solicitado e integra Git/GitHub opcionalmente. Executa em WSL/Linux, com ESM e Node 24 por padrão nas stacks Node. Dados/cache/Kubernetes/monitoria/Vault continuam nas [próximas etapas](ferramentas/boilerplate/docs/implementacao.md).
+O pacote [boilerplate](ferramentas/boilerplate/README.md) cria as seis bases web, recebe nome/destino, instala dependências quando solicitado e integra Git/GitHub opcionalmente. Executa em WSL/Linux, com ESM e Node 24 por padrão nas stacks Node. Banco/cache, Docker/Kubernetes, monitoria e Vault são opcionais e têm [guias de operação](ferramentas/boilerplate/docs/integracoes.md).
 
 ```sh
 cargo run -p rust-boilerplate -- new

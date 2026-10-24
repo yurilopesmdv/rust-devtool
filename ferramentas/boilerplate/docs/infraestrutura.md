@@ -35,7 +35,7 @@ Uma imagem é pré-requisito: permitir Dockerfile gerado ou referência de image
 
 Para banco/cache/monitoria/Vault, distinguir `local` (recursos de laboratório no ambiente alvo) de `external` (configuração para instâncias existentes). Banco local em Kubernetes requer volume, armazenamento compatível e documentação de inicialização. Não pressupor StorageClass. Recursos de estado não são modelados como cópias stateless da API.
 
-Não criar cluster ou recursos de nuvem. Não aplicar manifests. Dependências de cluster precisam aparecer no README e no plano: storage, DNS/ingress quando escolhido, Vault Injector quando escolhido e CRDs quando necessárias. A primeira versão deve preferir recursos nativos; `ServiceMonitor` só pode ser gerado com suporte explícito ao Prometheus Operator.
+Não criar cluster ou recursos de nuvem. Não aplicar manifests. Dependências de cluster precisam aparecer no README e no plano: storage, DNS/ingress quando escolhido, autenticação Kubernetes do Vault quando escolhida. A primeira versão deve preferir recursos nativos; `ServiceMonitor` só pode ser gerado com suporte explícito ao Prometheus Operator.
 
 ## URLs, frontend/backend e CORS
 
@@ -70,7 +70,7 @@ A base de toda aplicação tem validação de configuração e `.env.example` co
 
 Vault é opcional. Contrato proposto: suporte explícito a arquivos de segredo montados, com configurações como `DATABASE_URL_FILE` quando houver banco. A aplicação lê o arquivo no bootstrap, valida o valor e não o imprime. Arquivo e variável direta simultâneos para a mesma chave devem produzir erro de ambiguidade; a documentação explica o fluxo escolhido.
 
-No Kubernetes, integração com Vault Agent Injector e autenticação Kubernetes, com identidade/role/policy/path informados para o ambiente. O [Injector](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/injector) renderiza segredos em arquivos; não transforma automaticamente o ambiente de um processo já iniciado. O leitor de arquivos é parte necessária do adapter.
+No Kubernetes, um initContainer Vault Agent autentica pelo método Kubernetes e renderiza arquivos em emptyDir em memória. A API monta esses arquivos read-only. Não há dependência do Injector: a identidade/role/policy e o método de autenticação precisam ser configurados pelo operador conforme o guia gerado.
 
 No Compose, o laboratório pode fornecer Vault/Agent e um procedimento manual de bootstrap, entrega de credenciais e renderização em volume compartilhado. Não embutir root token nem marcar o modo dev do Vault como configuração de produção. Para Vault externo, gerar apenas o contrato e as configurações de integração aplicáveis.
 
