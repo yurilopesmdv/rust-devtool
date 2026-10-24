@@ -98,7 +98,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     }
     let mut get = String::new();
     if cache {
-        get.push_str("const cached=await cache.get('example');if(cached){try{return JSON.parse(cached) as {message:string};}catch{/* Descarta cache inválido. */}}\n");
+        get.push_str("const cached=await cache.get('example');if(cached){try{const parsed:unknown=JSON.parse(cached);if(typeof parsed==='object'&&parsed!==null&&'message' in parsed&&typeof parsed.message==='string')return {message:parsed.message};}catch{/* Descarta cache inválido. */}}\n");
     }
     get.push_str(if db != Database::None {
         "const result=await repository.read();\n"
@@ -115,6 +115,9 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         "return repository.write(message);"
     };
     let express = t.integration_adapter.as_deref() == Some("node-express");
+    let cache_key = format!("'{}:example'", package["name"].as_str().unwrap());
+    get = get.replace("'example'", &cache_key);
+    let write = write.replace("'example'", &cache_key);
     if express {
         service.push_str(&format!("export async function getExample(){{{get}}}\n"));
         if db != Database::None {
@@ -219,14 +222,14 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 prefix,
                 "src/modules/example/example.controller.ts",
                 "Controller, Get, Inject",
-                "Controller, Get, Inject, Post, Body, BadRequestException",
+                "Controller, Get, Inject, Post, Body, BadRequestException, HttpCode",
             )?;
             replace(
                 files,
                 prefix,
                 "src/modules/example/example.controller.ts",
                 " @Get() get() { return this.service.get(); }",
-                " @Get() get() { return this.service.get(); }\n @Post() write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||message.length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
+                " @Get() get() { return this.service.get(); }\n @Post() @HttpCode(200) write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||message.length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
             )?;
         }
         replace(
@@ -289,14 +292,21 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             )?;
         }
     }
-    let skip = if db != Database::None || vault {
+    let skip = if db != Database::None {
         "!process.env.DATABASE_URL && !process.env.DATABASE_URL_FILE"
+    } else if vault && cache {
+        "!process.env.REDIS_URL && !process.env.REDIS_URL_FILE"
+    } else if vault {
+        "!process.env.APP_SECRET && !process.env.APP_SECRET_FILE"
     } else {
         "false"
     };
     let tests = "tests/api.test.mjs";
     let source = files.get_mut(&prefix.join(tests)).unwrap();
     *source = source.replacen("async () =>", &format!("{{skip:{skip}}}, async () =>"), 1);
+    if cache && db == Database::None && !vault {
+        source.insert_str(0,"// Exercita fallback com Redis indisponível; não simula um cache real.\nif(!process.env.REDIS_URL)process.env.REDIS_URL='redis://127.0.0.1:9';\n");
+    }
     if express {
         source.insert_str(
             0,
@@ -313,6 +323,29 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             1,
         );
     }
+    let base = if express { "base" } else { "url" };
+    let mut checks = String::new();
+    if db != Database::None {
+        checks.push_str(r#"
+const previous=await (await fetch(`${__BASE__}/api/v1/example`)).json();
+const message=`updated-${Date.now()}`;
+assert.equal((await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})})).status,200);
+assert.equal((await (await fetch(`${__BASE__}/api/v1/example`)).json()).message,message);
+assert.equal((await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:123})})).status,400);
+await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(previous)});
+"#);
+    }
+    if metrics {
+        checks.push_str(r#"const metrics=await (await fetch(`${__BASE__}/metrics`)).text();assert.match(metrics,/http_requests_total/);assert.match(metrics,/http_request_duration_seconds/);
+"#);
+    }
+    let source = files.get_mut(&prefix.join(tests)).unwrap();
+    let marker = if express {
+        "  } finally {"
+    } else {
+        " } finally {"
+    };
+    *source = source.replacen(marker, &(checks.replace("__BASE__", base) + marker), 1);
     if vault {
         insert(
             files,

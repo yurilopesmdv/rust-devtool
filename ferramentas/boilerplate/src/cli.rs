@@ -15,7 +15,7 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Consulta as stacks planejadas (não são templates geráveis ainda).
+    /// Consulta templates, requisitos e capacidades do catálogo.
     Templates {
         #[command(subcommand)]
         command: Templates,
@@ -96,6 +96,8 @@ pub struct PlanArgs {
     #[arg(long, value_enum)]
     pub vault_location: Option<Location>,
     #[arg(long)]
+    pub vault_address: Option<String>,
+    #[arg(long)]
     pub namespace: Option<String>,
     #[arg(long)]
     pub image: Option<String>,
@@ -149,6 +151,7 @@ impl PlanArgs {
         apply!(r.infrastructure.monitoring, self.monitoring);
         apply!(r.infrastructure.secrets, self.secrets);
         apply!(r.infrastructure.vault_location, self.vault_location);
+        apply!(r.infrastructure.vault_address, self.vault_address);
         apply!(r.infrastructure.namespace, self.namespace);
         apply!(r.infrastructure.image, self.image);
         apply!(r.infrastructure.image_web, self.image_web);
@@ -170,6 +173,9 @@ impl PlanArgs {
         }
         if self.secrets == Some(Secrets::Env) && self.vault_location.is_none() {
             r.infrastructure.vault_location = None;
+            if self.vault_address.is_none() {
+                r.infrastructure.vault_address = None;
+            }
         }
         r.schema_version = Some(1);
         r.catalog_version = Some(crate::catalog::VERSION.to_string());

@@ -127,7 +127,7 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     insert(files, prefix, "src/infrastructure/mod.rs", modules);
     let mut service = String::new();
     if cache {
-        service.push_str("if let Some(value)=crate::infrastructure::cache::get(\"example\").await && let Ok(value)=serde_json::from_str(&value){return Ok(value);}\n");
+        service.push_str("if let Some(value)=crate::infrastructure::cache::get(\"example\").await && let Ok(value)=serde_json::from_str::<serde_json::Value>(&value) && value.get(\"message\").and_then(serde_json::Value::as_str).is_some(){return Ok(value);}\n");
     }
     service.push_str(if db!=Database::None{"let message=repositories::read().await?;let value=serde_json::json!({\"message\":message});\n"}else{"let value=serde_json::json!({\"message\":\"API funcionando\"});\n"});
     if cache {
@@ -146,13 +146,19 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     if db != Database::None {
         example.push_str(&format!("pub async fn write_controller(axum::Json(body):axum::Json<serde_json::Value>)->Result<axum::Json<serde_json::Value>,(axum::http::StatusCode,&'static str)>{{let message=body.get(\"message\").and_then(|v|v.as_str()).filter(|s|!s.is_empty()&&s.chars().count()<=200).ok_or((axum::http::StatusCode::BAD_REQUEST,\"message precisa conter 1 a 200 caracteres\"))?;repositories::write(message).await.map_err(|_|(axum::http::StatusCode::INTERNAL_SERVER_ERROR,\"Falha de persistência\"))?;{}Ok(axum::Json(serde_json::json!({{\"message\":message}})))}}\n",if cache{"crate::infrastructure::cache::remove(\"example\").await;"}else{""}));
     }
+    let example = example.replace(
+        "\"example\"",
+        &format!("\"{}:example\"", cargo["package"]["name"].as_str().unwrap()),
+    );
     insert(files, prefix, "src/modules/example/mod.rs", example);
-    let origin = files[&prefix.join("src/lib.rs")]
-        .split("http://localhost:")
-        .nth(1)
-        .and_then(|s| s.split('"').next())
-        .unwrap_or("5173")
-        .to_string();
+    let origin = r.infrastructure.frontend_origin.clone().unwrap_or_else(|| {
+        let port = files[&prefix.join("src/lib.rs")]
+            .split("http://localhost:")
+            .nth(1)
+            .and_then(|s| s.split('"').next())
+            .unwrap_or("5173");
+        format!("http://localhost:{port}")
+    });
     insert(
         files,
         prefix,
@@ -164,7 +170,7 @@ use axum::{{Json,Router,routing::get,http::{{StatusCode,Method,HeaderValue,heade
 use serde_json::json;
 use tower_http::cors::CorsLayer;
 pub fn app()->Router{{
- let origin=std::env::var("FRONTEND_ORIGIN").unwrap_or_else(|_|"http://localhost:{origin}".into());
+ let origin=std::env::var("FRONTEND_ORIGIN").unwrap_or_else(|_|"{origin}".into());
  let router=Router::new().route("/health",get(||async{{Json(json!({{"status":"ok"}}))}}))
  .route("/ready",get(||async{{infrastructure::ready().await.map(|_|Json(json!({{"status":"ok"}}))).map_err(|_|StatusCode::SERVICE_UNAVAILABLE)}}))
  .route("/api/v1/example",get(modules::example::controller){}){};

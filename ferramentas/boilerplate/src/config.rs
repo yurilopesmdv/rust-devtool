@@ -86,6 +86,7 @@ pub struct Infrastructure {
     pub monitoring: Option<Monitoring>,
     pub secrets: Option<Secrets>,
     pub vault_location: Option<Location>,
+    pub vault_address: Option<String>,
     pub namespace: Option<String>,
     pub image: Option<String>,
     pub image_web: Option<String>,

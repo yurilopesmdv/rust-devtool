@@ -204,6 +204,18 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             } else {
                 recipe.infrastructure.image_api.take()
             };
+            if recipe.infrastructure.kubernetes == Some(Kubernetes::Manifests)
+                && recipe.infrastructure.image.is_none()
+            {
+                recipe.infrastructure.image = Some(format!(
+                    "{name}-{}:0.1.0",
+                    if t.role == ProjectType::Frontend {
+                        "web"
+                    } else {
+                        "api"
+                    }
+                ));
+            }
             recipe.infrastructure.image_web = None;
             recipe.infrastructure.image_api = None;
             recipe.infrastructure.frontend_origin = Some(frontend_origin.to_string());
@@ -212,6 +224,7 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
                 recipe.backend = Backend::default();
                 recipe.infrastructure.secrets = Some(Secrets::Env);
                 recipe.infrastructure.vault_location = None;
+                recipe.infrastructure.vault_address = None;
                 recipe.infrastructure.monitoring = Some(Monitoring::None);
             } else {
                 recipe.frontend = Frontend::default();
@@ -263,7 +276,7 @@ fn app_readme(name: &str, template: &str, manager: &str, web_port: u16, compose:
         }
     };
     format!(
-        "# {name}\n\nBase `{template}` criada pelo boilerplate para WSL/Linux. Execute os comandos nesta pasta.\n\n## Instalar, validar e executar\n\n{commands}\n## Configuração e integração\n\nAPI: http://localhost:3000, `/health` e `/api/v1/example`. Frontend: http://localhost:{web_port}. O cliente usa URL acessível ao navegador, e não DNS de container. `VITE_API_URL` e `NEXT_PUBLIC_API_URL` são públicas e aplicadas no build; nunca coloque segredos nelas.\n\nQuando .env.example existir, copie para .env antes de personalizar. Não versione .env. Os scripts dev/start dos backends Node carregam .env quando presente; Vite/Next usam seus carregadores próprios. O backend Rust lê o ambiente do processo: exporte as variáveis no shell.\n\nEstrutura: controllers recebem HTTP; services concentram regras; repositories só entram com persistência implementada. O backend demonstra chamadas stateless e não simula um banco. Os fontes TypeScript usam import/export, com ESM por padrão; uma opção CommonJS muda a saída compilada, não o estilo dos fontes.\n\n{}\n## Manutenção\n\nConsulte AGENTS.md. boilerplate.toml registra opções sem credenciais. Ao modificar dependências, atualize o lockfile e rode os checks acima. Um projeto criado não implica que GitHub, Docker ou serviços tenham sido iniciados.\n",
+        "# {name}\n\nBase `{template}` criada pelo boilerplate para WSL/Linux. Execute os comandos nesta pasta.\n\n## Instalar, validar e executar\n\n{commands}\n## Configuração e integração\n\nAPI: http://localhost:3000, `/health` e `/api/v1/example`. Frontend: http://localhost:{web_port}. O cliente usa URL acessível ao navegador, e não DNS de container. `VITE_API_URL` e `NEXT_PUBLIC_API_URL` são públicas e aplicadas no build; nunca coloque segredos nelas.\n\nQuando .env.example existir, copie para .env antes de personalizar. Não versione .env. Os scripts dev/start dos backends Node carregam .env quando presente; Vite/Next usam seus carregadores próprios. O backend Rust lê o ambiente do processo: exporte as variáveis no shell.\n\nEstrutura: controllers recebem HTTP; services concentram regras; repositories só entram com persistência implementada. Sem persistência selecionada, o backend é stateless; com banco, veja docs/OPERACAO.md na raiz para preparação e exemplos de leitura/escrita. Os fontes TypeScript usam import/export, com ESM por padrão; uma opção CommonJS muda a saída compilada, não o estilo dos fontes.\n\n{}\n## Manutenção\n\nConsulte AGENTS.md. boilerplate.toml registra opções sem credenciais. Ao modificar dependências, atualize o lockfile e rode os checks acima. Um projeto criado não implica que GitHub, Docker ou serviços tenham sido iniciados.\n",
         if compose {
             "## Containers\n\nDockerfile e .dockerignore acompanham a aplicação. Execute `docker --version` e `docker compose version` antes de usar. O Compose fica na raiz do projeto/repositório. Revise com `docker compose config`, execute `docker compose up --build` e pare com `docker compose down`. Um projeto separado usa URLs do host para conectar browser/API. Nenhum desses comandos é executado pelo gerador.\n"
         } else {

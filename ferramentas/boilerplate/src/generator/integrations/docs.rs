@@ -26,6 +26,16 @@ pub fn write(
     let mut text = String::from(
         "# Operação do ambiente gerado\n\nEste documento acompanha apenas os módulos selecionados. As configurações são bases de desenvolvimento: ajuste TLS, domínio, backup, capacidade e políticas para seu ambiente. O gerador não inicia serviços nem opera clusters.\n\n",
     );
+    text.push_str("## Dependências do ambiente\n\nA geração offline requer apenas o binário boilerplate. Para instalar/executar a aplicação, use o runtime e os comandos do README da aplicação. Não há instalação global de frameworks.\n\n");
+    if r.infrastructure.containers == Some(Containers::Compose) {
+        text.push_str("Docker/Compose: siga a [instalação oficial no Ubuntu](https://docs.docker.com/engine/install/ubuntu/) compatível com sua distribuição WSL; valide `docker --version`, `docker compose version` e `docker info` antes de iniciar containers.\n\n");
+    }
+    if r.infrastructure.kubernetes == Some(Kubernetes::Manifests) {
+        text.push_str("kubectl: siga a [instalação oficial Linux](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/). O cluster, kubeconfig, StorageClass e permissões são pré-requisitos externos.\n\n");
+    }
+    if vault {
+        text.push_str("Vault CLI para bootstrap: [instalação oficial Linux](https://developer.hashicorp.com/vault/install). O Agent já faz parte dos arquivos de Compose/Kubernetes escolhidos.\n\n");
+    }
     if has_api && (db != Database::None || cache) {
         text.push_str("## Dados e configuração\n\nA aplicação lê DATABASE_URL e/ou REDIS_URL (somente os módulos presentes). .env.example da aplicação usa localhost; infra/.env.example usa nomes internos para containers/Kubernetes. Não misture esses endereços. Preencha credenciais próprias, com percent-encoding nos componentes de senha das URLs. Serviços externos não geram instâncias locais: configure seus URLs e TLS. PostgreSQL aceita sslmode=verify-full; MongoDB suporta mongodb+srv/TLS; Redis suporta rediss. Não desative a validação de certificados.\n\n");
     }
@@ -48,7 +58,7 @@ pub fn write(
         text.push_str("`/health` indica processo ativo; `/ready` consulta o banco obrigatório e retorna 503 quando indisponível. Testes de persistência exigem o banco configurado e preparado: Node habilita o teste HTTP quando DATABASE_URL ou DATABASE_URL_FILE estiver presente; Rust usa `cargo test -- --ignored`. A suíte padrão não simula persistência como se fosse um banco real.\n\n");
     }
     if cache {
-        text.push_str("## Cache Redis\n\nLeituras do exemplo usam chave `example` e TTL de 30s; gravações invalidam a chave. Redis indisponível permite consultar o banco/origem sem cache; credencial/URL ausente é erro de configuração. O cache não é a fonte da informação e não determina a readiness. Não coloque dados sensíveis nesse exemplo sem definir sua política.\n\n");
+        text.push_str("## Cache Redis\n\nLeituras do exemplo usam chave `example` e TTL de 30s e prefixo do projeto; gravações invalidam a chave. Redis indisponível permite consultar o banco/origem sem cache; credencial/URL ausente é erro de configuração. O cache não é a fonte da informação e não determina a readiness. Não coloque dados sensíveis nesse exemplo sem definir sua política.\n\n");
     }
     if monitored {
         text.push_str("## Prometheus e Grafana\n\nCompose: Prometheus em http://localhost:9090 e Grafana em http://localhost:3002 (usuário admin, senha definida em infra/.env). Datasource e dashboard são provisionados por arquivos; confira Targets do Prometheus e o painel Application. Em Kubernetes, faça port-forward dos Services prometheus:9090 e grafana:3000. Não há Prometheus Operator ou CRDs obrigatórios.\n\nBackends expõem /metrics com contagem, duração e status HTTP; labels usam padrões de rota, não URLs com IDs. Em Next standalone são métricas de processo; frontend estático usa stub_status do nginx + exporter, com tráfego/conexões reais (sem inventar latência/status que o stub_status não mede). Quando há API no fullstack, o painel HTTP monitora a API.\n\nPara binários locais sem containers, use infra/monitoring/prometheus.local.yml e ajuste o datasource Grafana para localhost:9090. O provisionamento distribuído aponta para o nome interno prometheus, adequado a Compose/Kubernetes. Dados da monitoria Kubernetes usam emptyDir no overlay dev e são perdidos ao recriar pods; configure armazenamento/retention no seu ambiente.\n\n");
@@ -90,7 +100,10 @@ O initContainer Vault Agent autentica usando o ServiceAccount api e o método Ku
 
 ```sh
 vault auth enable kubernetes
-# Após configurar auth/kubernetes/config para o cluster:
+# Vault rodando dentro do cluster usa o token e a CA do próprio ServiceAccount:
+vault write auth/kubernetes/config kubernetes_host=https://kubernetes.default.svc
+# Para Vault externo, forneça explicitamente host, CA e token reviewer adequados:
+# vault write auth/kubernetes/config kubernetes_host="$KUBE_HOST" kubernetes_ca_cert=@"$KUBE_CA_FILE" token_reviewer_jwt=@"$KUBE_REVIEWER_FILE"
 vault policy write {name}-app infra/vault/app-policy.hcl
 vault write auth/kubernetes/role/{name}-api bound_service_account_names=api bound_service_account_namespaces={namespace} policies={name}-app ttl=1h
 ```

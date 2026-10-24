@@ -130,9 +130,13 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
         crate::generator::runtime::valid_node_version(&r.toolchain.node_version),
         "Versão Node deve ser numérica (22.12+ ou major 22/24+); aliases e comandos não são aceitos",
     )?;
-    for origin in [&r.infrastructure.frontend_origin, &r.infrastructure.api_url]
-        .into_iter()
-        .flatten()
+    for origin in [
+        &r.infrastructure.frontend_origin,
+        &r.infrastructure.api_url,
+        &r.infrastructure.vault_address,
+    ]
+    .into_iter()
+    .flatten()
     {
         let valid = origin.split_once("://").is_some_and(|(scheme, host)| {
             ["http", "https"].contains(&scheme)
@@ -201,6 +205,10 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     let monitoring = r.infrastructure.monitoring.unwrap_or(Monitoring::None);
     let secrets = r.infrastructure.secrets.unwrap_or(Secrets::Env);
     require(
+        secrets == Secrets::Vault || r.infrastructure.vault_address.is_none(),
+        "--vault-address exige --secrets vault",
+    )?;
+    require(
         has_api || (database == Database::None && cache == Cache::None && secrets == Secrets::Env),
         "Banco, cache e Vault exigem backend; não são configurações do navegador",
     )?;
@@ -262,14 +270,8 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
         )?;
         for image in images.into_iter().flatten() {
             require(
-                !image.is_empty()
-                    && !image.contains(char::is_whitespace)
-                    && !image.contains("://")
-                    && !image.contains('@')
-                    && image.rsplit('/').next().is_some_and(|last| {
-                        last.contains(':') && !last.ends_with(":latest") && !last.ends_with(':')
-                    }),
-                "Imagem deve ter uma tag explícita diferente de latest, sem URL, credenciais ou espaços",
+                valid_image(image),
+                "Imagem exige tag explícita diferente de latest ou digest sha256 válido, sem URL/credenciais/espaços",
             )?;
         }
         let explicit = if full {
@@ -409,7 +411,7 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
             // Frontend estático só recebe monitoria via servidor de container.
             let static_metrics = capability == "prometheus-grafana"
                 && t.role == ProjectType::Frontend
-                && containers == Containers::Compose
+                && (containers == Containers::Compose || kubernetes == Kubernetes::Manifests)
                 && t.capabilities
                     .iter()
                     .any(|c| c == "prometheus-grafana-container");
@@ -473,10 +475,43 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
         omitted,
         infrastructure_paths,
         notes: vec![
-            "Este comando apenas planeja; new gera bases e Compose, e rejeita adapters avançados ainda não implementados.".into(),
-            "Versões de dependências das bases estão nos templates; drivers e serviços avançados ainda dependem de adapters.".into(),
+            "Este comando apenas planeja; new gera as bases e integrações selecionadas sem executar infraestrutura.".into(),
+            "Versões e lockfiles das bases e drivers são distribuídos com os templates e adapters.".into(),
             "new usa API local na porta 3000, frontend em 5173 (Next em 3001) e CORS correspondente.".into(),
             "Nenhuma instalação, container, daemon ou cluster foi executado/consultado pelo planejador.".into(),
         ],
     })
+}
+
+pub fn valid_image(image: &str) -> bool {
+    if image.is_empty() || image.contains("://") || image.contains(char::is_whitespace) {
+        return false;
+    }
+    let repository = if let Some((name, hash)) = image.split_once("@sha256:") {
+        if hash.len() != 64 || !hash.bytes().all(|c| c.is_ascii_hexdigit()) {
+            return false;
+        }
+        name
+    } else {
+        let Some((name, tag)) = image.rsplit_once(':') else {
+            return false;
+        };
+        if tag.is_empty()
+            || tag == "latest"
+            || tag.len() > 128
+            || !tag
+                .bytes()
+                .all(|c| c.is_ascii_alphanumeric() || b"_.-".contains(&c))
+        {
+            return false;
+        }
+        name
+    };
+    !repository.is_empty()
+        && !repository.starts_with('/')
+        && !repository.ends_with('/')
+        && repository
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || b"/_.-:[]".contains(&c))
+        && !repository.split('/').any(|p| p.is_empty() || p == "..")
 }

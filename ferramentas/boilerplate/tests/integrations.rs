@@ -205,3 +205,93 @@ fn split_frontend_recipe_has_no_backend_services_and_keeps_urls_and_image_contra
     assert!(planner::build(config, &c, &cwd).is_ok());
     assert!(!frontend.files.keys().any(|p| p.starts_with("infra/vault")));
 }
+
+#[test]
+fn rust_custom_origin_and_public_frontend_urls_survive_generation() {
+    let mut r = recipe("rust-axum");
+    r.infrastructure.frontend_origin = Some("https://web.example".into());
+    r.infrastructure.monitoring = Some(Monitoring::PrometheusGrafana);
+    let output = files(r);
+    assert!(output[&PathBuf::from("src/lib.rs")].contains("https://web.example"));
+    let deployment: serde_json::Value =
+        serde_json::from_str(&output[&PathBuf::from("infra/kubernetes/base/api-deployment.yaml")])
+            .unwrap();
+    assert!(
+        deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["name"] == "FRONTEND_ORIGIN" && v["value"] == "https://web.example")
+    );
+}
+#[test]
+fn immutable_image_digests_and_static_metrics_without_compose_are_supported() {
+    use rust_boilerplate::planner::valid_image;
+    let digest = format!("example/web@sha256:{}", "a".repeat(64));
+    assert!(valid_image(&digest));
+    for image in [
+        "example/api:latest",
+        "https://registry/repo:1",
+        "user@registry:tag",
+        "repo:bad\"tag",
+        "repo@sha256:short",
+    ] {
+        assert!(!valid_image(image));
+    }
+    let mut r = Recipe::default();
+    r.project.name = Some("static-metrics-sample".into());
+    r.project.kind = Some(ProjectType::Frontend);
+    r.frontend.template = Some("vanilla-js".into());
+    r.infrastructure.kubernetes = Some(Kubernetes::Manifests);
+    r.infrastructure.image = Some(digest);
+    r.infrastructure.monitoring = Some(Monitoring::PrometheusGrafana);
+    let output = files(r);
+    assert!(!output.contains_key(&PathBuf::from("compose.yaml")));
+    assert!(output.contains_key(&PathBuf::from("infra/kubernetes/base/web-metrics.yaml")));
+}
+
+#[test]
+fn external_vault_address_is_shared_by_agent_modes_and_disabled_options_reject_it() {
+    let mut r = recipe("express-ts");
+    r.infrastructure.secrets = Some(Secrets::Vault);
+    r.infrastructure.vault_location = Some(Location::External);
+    r.infrastructure.vault_address = Some("https://vault.example:8200".into());
+    let output = files(r.clone());
+    assert!(
+        output[&PathBuf::from("infra/.env.example")]
+            .contains("VAULT_ADDR=https://vault.example:8200")
+    );
+    assert!(
+        output[&PathBuf::from("infra/vault/agent.kubernetes.hcl")]
+            .contains("https://vault.example:8200")
+    );
+    r.infrastructure.secrets = Some(Secrets::Env);
+    r.infrastructure.vault_location = None;
+    let catalog = Catalog::embedded().unwrap();
+    assert!(planner::build(r, &catalog, &std::env::temp_dir()).is_err());
+}
+#[test]
+fn vault_container_contract_uses_owned_storage_and_bypasses_entrypoint_for_approle_files() {
+    let mut r = recipe("express-ts");
+    r.infrastructure.secrets = Some(Secrets::Vault);
+    r.infrastructure.vault_location = Some(Location::Local);
+    let output = files(r);
+    let compose: serde_json::Value =
+        serde_json::from_str(&output[&PathBuf::from("compose.yaml")]).unwrap();
+    assert_eq!(
+        compose["services"]["vault-agent"]["entrypoint"],
+        serde_json::json!(["vault"])
+    );
+    assert_eq!(
+        compose["services"]["vault"]["command"],
+        serde_json::json!(["server"])
+    );
+    assert!(
+        compose["services"]["vault"]["volumes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v == "vault-data:/vault/file")
+    );
+    assert!(output[&PathBuf::from("infra/vault/server.hcl")].contains("/vault/file"));
+}

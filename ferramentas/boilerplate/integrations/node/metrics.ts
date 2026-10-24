@@ -15,6 +15,6 @@ export function metricsMiddleware(req: {method:string,route?:{path?:string}}, re
   });
   next();
 }
-export async function metricsHandler(_req: unknown, res: {setHeader:(name:string,value:string)=>unknown,end:(body:string)=>unknown}, next?:(error:unknown)=>void) {
-  try { res.setHeader('Content-Type', registry.contentType); res.end(await registry.metrics()); } catch(error) { if(next) next(error); else res.end('metrics unavailable'); }
+export async function metricsHandler(_req: unknown, res: {statusCode?:number,setHeader:(name:string,value:string)=>unknown,end:(body:string)=>unknown}, next?:(error:unknown)=>void) {
+  try { res.setHeader('Content-Type', registry.contentType); res.end(await registry.metrics()); } catch(error) { if(next) next(error); else { res.statusCode=500; res.end('metrics unavailable'); } }
 }

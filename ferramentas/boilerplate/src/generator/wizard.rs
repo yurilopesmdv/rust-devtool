@@ -248,6 +248,15 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             r.infrastructure.vault_location =
                 Some(service_location("Localização do Vault", local_infra)?);
         }
+        if r.infrastructure.secrets == Some(Secrets::Vault)
+            && r.infrastructure.vault_address.is_none()
+            && r.infrastructure.vault_location == Some(Location::External)
+        {
+            r.infrastructure.vault_address = Some(line(
+                "URL do Vault acessível aos Agents (sem credenciais)",
+                None,
+            )?);
+        }
         if r.infrastructure.frontend_origin.is_none() {
             let port = if r.frontend.template.as_deref() == Some("next-ts") {
                 3001
@@ -269,7 +278,7 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
     if r.infrastructure.monitoring.is_none() {
         let supported = r.backend.template.is_some()
             || r.frontend.template.as_deref() == Some("next-ts")
-            || r.infrastructure.containers == Some(Containers::Compose);
+            || local_infra;
         r.infrastructure.monitoring = Some(
             if supported && decision("Adicionar Prometheus e Grafana?", false)? {
                 Monitoring::PrometheusGrafana

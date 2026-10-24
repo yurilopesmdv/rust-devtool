@@ -199,6 +199,25 @@ pub fn install(
     if program == "cargo" && !app.destination.join("Cargo.lock").exists() {
         args.retain(|a| a != "--locked");
     }
+    if program == "cargo"
+        && args.first().is_some_and(|arg| arg == "fetch")
+        && !args.iter().any(|arg| arg == "--target")
+    {
+        let output = Command::new("rustc")
+            .arg("-vV")
+            .stdin(Stdio::null())
+            .output()
+            .map_err(|e| Error::operation(format!("Verificar toolchain Rust: {e}")))?;
+        let info = String::from_utf8_lossy(&output.stdout);
+        let host = info
+            .lines()
+            .find_map(|line| line.strip_prefix("host: "))
+            .filter(|host| host.contains("-linux-"))
+            .ok_or_else(|| {
+                Error::operation("A instalação exige uma toolchain Rust Linux dentro do WSL")
+            })?;
+        args.extend(["--target".to_string(), host.to_string()]);
+    }
     checked(
         runtime
             .command(program)

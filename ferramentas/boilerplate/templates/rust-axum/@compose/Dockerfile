@@ -3,7 +3,8 @@ WORKDIR /app
 COPY . .
 RUN cargo build --release
 FROM debian:bookworm-slim
-RUN useradd --system --uid 10001 app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* && useradd --system --uid 10001 app
 WORKDIR /app
 COPY --from=build /app/target/release/{{PROJECT_NAME}} /app/server
 USER 10001

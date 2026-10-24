@@ -26,9 +26,7 @@ fn run() -> Result<(), Error> {
             if as_json {
                 json(&catalog.templates)?;
             } else {
-                println!(
-                    "Catálogo 1 — bases web disponíveis; integrações avançadas continuam no plano."
-                );
+                println!("Catálogo 1 — bases web e integrações opcionais disponíveis.");
                 for t in &catalog.templates {
                     println!(
                         "{} | {:?} | {} | {} | {:?}",
@@ -45,7 +43,7 @@ fn run() -> Result<(), Error> {
                 json(t)?;
             } else {
                 println!(
-                    "{} — {} ({})\nPapel: {:?}\nStatus: {:?}\nArquitetura: {}\nCapacidades planejadas: {}\nGerenciador: {}",
+                    "{} — {} ({})\nPapel: {:?}\nStatus: {:?}\nArquitetura: {}\nCapacidades: {}\nGerenciador: {}",
                     t.id,
                     t.framework,
                     t.language,
@@ -55,9 +53,7 @@ fn run() -> Result<(), Error> {
                     t.capabilities.join(", "),
                     t.package_manager
                 );
-                println!(
-                    "Consulte new --help para criar a base; capacidades avançadas podem estar apenas planejadas."
-                );
+                println!("Consulte new --help; combinações são validadas antes de criar arquivos.");
                 for requirement in &t.requirements {
                     println!(
                         "Requisito: {} — {}",

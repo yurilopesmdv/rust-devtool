@@ -100,13 +100,14 @@ pub fn apply(plan: &Plan, catalog: &Catalog, root: &Path, files: &mut Files) -> 
         env.push_str("GRAFANA_ADMIN_PASSWORD=replace-me\n");
     }
     if vault {
-        env.push_str(
+        let address = r.infrastructure.vault_address.as_deref().unwrap_or(
             if r.infrastructure.vault_location == Some(Location::Local) {
-                "VAULT_ADDR=http://vault:8200\n"
+                "http://vault:8200"
             } else {
-                "VAULT_ADDR=https://vault.example.invalid:8200\n"
+                "https://vault.example.invalid:8200"
             },
         );
+        env.push_str(&format!("VAULT_ADDR={address}\n"));
     }
     // Root env is for container/cluster endpoints. Application env uses host-accessible endpoints.
     if !env.is_empty() {
@@ -141,8 +142,15 @@ pub fn apply(plan: &Plan, catalog: &Catalog, root: &Path, files: &mut Files) -> 
                 "DATABASE_URL=mongodb://app:replace-me@localhost:27017/app?authSource=admin\n"
             });
         }
+        if r.backend.database_location == Some(Location::External) {
+            extra = extra.replace("@localhost:", "@database.example.invalid:");
+        }
         if cache {
-            extra.push_str("REDIS_URL=redis://:replace-me@localhost:6379\n");
+            extra.push_str(if r.backend.cache_location == Some(Location::External) {
+                "REDIS_URL=rediss://:replace-me@cache.example.invalid:6379\n"
+            } else {
+                "REDIS_URL=redis://:replace-me@localhost:6379\n"
+            });
         }
         if vault {
             extra.push_str(
@@ -248,8 +256,9 @@ pub fn apply(plan: &Plan, catalog: &Catalog, root: &Path, files: &mut Files) -> 
                 if !depends.is_empty() {
                     service["depends_on"] = Value::Object(depends);
                 }
-            } else if monitored && t.package_manager == "none"
-                || monitored && t.id == "react-vite-ts"
+            } else if !has_api
+                && monitored
+                && (t.package_manager == "none" || t.id == "react-vite-ts")
             {
                 static_config(files, prefix);
                 service["volumes"] = json!([format!(
@@ -296,10 +305,10 @@ pub fn apply(plan: &Plan, catalog: &Catalog, root: &Path, files: &mut Files) -> 
         }
         if vault {
             if r.infrastructure.vault_location == Some(Location::Local) {
-                services.insert("vault".into(),json!({"image":VAULT,"command":["server","-config=/vault/config/server.hcl"],"ports":["127.0.0.1:8200:8200"],"volumes":["./infra/vault/server.hcl:/vault/config/server.hcl:ro","vault-data:/vault/data"]}));
+                services.insert("vault".into(),json!({"image":VAULT,"command":["server"],"environment":{"SKIP_SETCAP":"true"},"ports":["127.0.0.1:8200:8200"],"volumes":["./infra/vault/server.hcl:/vault/config/server.hcl:ro","vault-data:/vault/file"]}));
                 volumes.insert("vault-data".into(), json!({}));
             }
-            services.insert("vault-agent".into(),json!({"image":VAULT,"user":"0:0","command":["agent","-config=/vault/config/agent.hcl"],"environment":{"VAULT_ADDR":"${VAULT_ADDR:?configure VAULT_ADDR}"},"volumes":["./infra/vault/agent.compose.hcl:/vault/config/agent.hcl:ro","./infra/vault/local:/vault/auth:ro","app-secrets:/run/secrets"]}));
+            services.insert("vault-agent".into(),json!({"image":VAULT,"user":"0:0","entrypoint":["vault"],"command":["agent","-config=/vault/config/agent.hcl"],"environment":{"VAULT_ADDR":"${VAULT_ADDR:?configure VAULT_ADDR}"},"volumes":["./infra/vault/agent.compose.hcl:/vault/config/agent.hcl:ro","./infra/vault/local:/vault/auth:ro","app-secrets:/run/secrets"]}));
             volumes.insert("app-secrets".into(), json!({}));
         }
         let mut output = json!({"services":services});
@@ -461,7 +470,7 @@ fn vault_files(
             files,
             Path::new(""),
             "infra/vault/server.hcl",
-            "ui = true\ndisable_mlock = true\nstorage \"file\" { path = \"/vault/data\" }\nlistener \"tcp\" {\n address = \"0.0.0.0:8200\"\n tls_disable = true\n}\n# Laboratório local: use TLS e armazenamento/HA adequados fora dele.\n",
+            "ui = true\ndisable_mlock = true\nstorage \"file\" { path = \"/vault/file\" }\nlistener \"tcp\" {\n address = \"0.0.0.0:8200\"\n tls_disable = true\n}\n# Laboratório local: use TLS e armazenamento/HA adequados fora dele.\n",
         );
     }
     let policy = format!("path \"kv/data/{name}\" {{ capabilities = [\"read\"] }}\n");
@@ -478,11 +487,13 @@ fn vault_files(
     );
     let mut k8s = format!(
         "exit_after_auth = true\nvault {{ address = \"{}\" }}\nauto_auth {{\n method \"kubernetes\" {{ config = {{ role = \"{name}-api\" }} }}\n}}\n",
-        if r.infrastructure.vault_location == Some(Location::Local) {
-            "http://vault:8200"
-        } else {
-            "https://vault.example.invalid:8200"
-        }
+        r.infrastructure.vault_address.as_deref().unwrap_or(
+            if r.infrastructure.vault_location == Some(Location::Local) {
+                "http://vault:8200"
+            } else {
+                "https://vault.example.invalid:8200"
+            }
+        )
     );
     k8s.push_str(&agent_templates(name, db, cache, "/vault/secrets"));
     insert(
@@ -563,7 +574,7 @@ fn kubernetes(
         if !web && vault {
             vault_pod(&mut spec, files)?;
         }
-        if web && monitored && t.id != "next-ts" {
+        if web && !has_api && monitored && t.id != "next-ts" {
             let prefix = if mono {
                 PathBuf::from("apps/web")
             } else {
@@ -752,7 +763,7 @@ fn kubernetes(
                 "vault",
                 VAULT,
                 8200,
-                "/vault/data",
+                "/vault/file",
                 json!([]),
                 Some(json!([
                     "vault",
