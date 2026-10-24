@@ -46,6 +46,15 @@ O [workflow Quality](.github/workflows/quality.yml) executa o wrapper e o mesmo 
 
 O workflow cobre o workspace e uma matriz de seis aplicações npm geradas: as cinco bases JavaScript/TypeScript e Express/CommonJS. O job Python valida FastAPI com uv fixado, Python 3.13, Ruff e pytest em .venv. O job Rust gera Axum de um cwd temporário, usa target separado do workspace e verifica fmt/test/Clippy. O job de persistência cobre os quatro backends e Express/CommonJS com PostgreSQL/MongoDB/Redis descartáveis, preparação explícita e falha de readiness. Esses services pertencem ao CI; new continua sem iniciar infraestrutura. A primeira execução desses jobs no GitHub permanece pendente. Para exigir um check antes de merge, configure as regras de branch/required checks no GitHub depois do primeiro run. Esse efeito não vem apenas do arquivo YAML.
 
+## Documentação
+
+```sh
+python3 scripts/check_docs.py
+python3 -m unittest discover -s scripts/tests -p 'test_check_docs.py'
+```
+
+O job documentation usa esses comandos, sem dependências pip. Verifica destinos e fragmentos Markdown locais; URLs externas são ignoradas e não há rede. Veja os [formatos suportados](scripts/README.md).
+
 ## Checks da aplicação gerada
 
 Os testes do workspace verificam a geração; também é necessário validar a aplicação resultante quando mudar templates, adapters ou dependências. Veja [validação dos boilerplates](ferramentas/boilerplate/docs/validacao.md) e [lint/formatação por linguagem](ferramentas/boilerplate/docs/qualidade.md).

@@ -236,3 +236,19 @@ jobs:
           else
             python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --stacks "$TEMPLATE_ID"
           fi
+
+  documentation:
+    name: Documentation (local links)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test link checker
+        run: python3 -m unittest discover -s scripts/tests -p 'test_check_docs.py'
+
+      - name: Check local Markdown links
+        run: python3 scripts/check_docs.py
