@@ -1,0 +1,9 @@
+[package]
+name = "guia-rust"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[example]]
+name = "emprestimo_original"
+path = "03-ownership/emprestimo_original.rs"
