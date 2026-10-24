@@ -4,27 +4,27 @@
 
 ## O que funciona hoje
 
-Com Rust/Cargo instalados, na raiz deste repositório:
+Dentro de WSL/Linux, com Rust/Cargo instalados, na raiz deste repositório:
 
 ```sh
-cargo run -p rust-devtool -- help
-cargo run -p rust-devtool -- hash ferramentas/devtool/fixtures/exemplo.txt
-cargo run -p rust-devtool -- json format ferramentas/devtool/fixtures/exemplo.json
+cargo run -p rust-boilerplate -- templates list
+cargo run -p rust-boilerplate -- plan minha-api --type backend --backend express-ts
+cargo run -p rust-boilerplate -- doctor --template express-ts
 ```
 
-Ainda não há binário chamado `devtool` com o gerador, instalador próprio ou templates. Não use os exemplos da especificação esperando gerar projetos nesta revisão.
+Para instalação no PATH e exemplos completos, consulte o [README do pacote](../README.md). `new`, instalação de dependências de projetos e templates geráveis ainda não estão disponíveis. A devtool continua separada e seus comandos estão no [guia dos utilitários](../../devtool/README.md).
 
-## Distribuição planejada
+## Distribuição
 
-Adicionar o nome de binário `devtool` sem remover a compatibilidade com `rust-devtool`. Após essa implementação, a instalação local com Cargo deverá ser documentada usando o caminho real do pacote. Um instalador opcional POSIX sh poderá orientar o build/instalação e verificar o PATH, sem alterar arquivos de configuração do shell automaticamente.
+O executável `boilerplate` pertence ao pacote `rust-boilerplate`. Pode ser instalado com `cargo install --path ferramentas/boilerplate --locked`, a partir da raiz. Um instalador auxiliar poderá ser adicionado depois; não é necessário para usar o pacote hoje.
 
-A experiência deve seguir o padrão encontrado no repositório `tools`: comando no PATH, utilitário documentado, dependências verificadas e modo interativo. O núcleo Rust evita tornar Bash ou `fzf` obrigatórios para a geração. MacOS e Windows nativo entram apenas quando seus testes forem incluídos; o alvo inicial é Linux/WSL.
+A experiência segue os exemplos do repositório `tools`: comando no PATH, documentação por ferramenta e dependências verificadas. O núcleo Rust não exige Bash ou fzf para planejar. O ambiente de execução e validação é WSL/Linux; Windows nativo fica fora do escopo.
 
 ## Dependências por operação
 
 | Operação | Requisito |
 | --- | --- |
-| Gerar arquivos com binário distribuído | Binário devtool; sem Node/Docker obrigatórios para renderizar |
+| Gerar arquivos com binário distribuído | Binário boilerplate; sem Node/Docker obrigatórios para renderizar |
 | Compilar o gerador localmente | Rust/Cargo e componentes conforme o guia do repositório |
 | Executar frontend vanilla | Navegador e servidor HTTP local documentado |
 | Instalar/executar stacks Node | Node e gerenciador validado pelo template |

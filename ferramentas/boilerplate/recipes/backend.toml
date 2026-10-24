@@ -1,0 +1,17 @@
+schema_version = 1
+catalog_version = "1"
+
+[project]
+type = "backend"
+name = "minha-api"
+
+[backend]
+template = "express-ts"
+database = "none"
+cache = "none"
+
+[infrastructure]
+containers = "none"
+kubernetes = "none"
+monitoring = "none"
+secrets = "env"

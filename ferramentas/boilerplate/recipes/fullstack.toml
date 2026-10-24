@@ -1,0 +1,27 @@
+schema_version = 1
+catalog_version = "1"
+
+[project]
+type = "fullstack"
+name = "plataforma"
+layout = "monorepo"
+
+[frontend]
+template = "react-vite-ts"
+
+[backend]
+template = "express-ts"
+database = "postgres"
+database_location = "local"
+cache = "redis"
+cache_location = "local"
+
+[infrastructure]
+containers = "compose"
+kubernetes = "manifests"
+namespace = "plataforma-dev"
+image_web = "registry.example.com/plataforma-web:0.1.0"
+image_api = "registry.example.com/plataforma-api:0.1.0"
+monitoring = "prometheus-grafana"
+secrets = "vault"
+vault_location = "local"

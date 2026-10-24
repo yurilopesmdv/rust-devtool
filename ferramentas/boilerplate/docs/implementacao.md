@@ -1,33 +1,31 @@
 # Plano de implementação e validação
 
-[Índice](README.md). Nenhuma etapa de código do gerador foi entregue nesta especificação.
+[Índice](README.md). Etapa 1 entregue: catálogo embutido, receitas/flags, validação, plano e doctor. A geração começa na etapa 2.
 
-## Organização interna proposta
+## Organização interna
 
-Evoluir o pacote existente sem misturar templates com as aulas:
+O pacote independente mantém catálogo e planejamento separados dos utilitários de devtool e das aulas:
 
 ```text
-ferramentas/devtool/
+ferramentas/boilerplate/
+  build.rs                      # embute os TOMLs do catálogo na compilação
+  catalog/                      # um arquivo de metadados por stack
   src/
-    commands/                   # preserva hash/json; acrescenta novos comandos
-    generator/
-      config.*                  # escolhas tipadas, receitas e versão de schema
-      catalog.*                 # metadados e capacidades dos templates
-      validation.*              # restrições e combinações suportadas
-      planner.*                 # plano determinístico, sem efeitos
-      renderer.*                # arquivos, substituições e omissão de módulos
-      writer.*                  # staging, publicação e limpeza de falhas
-      installer.*               # processos de instalação selecionados
-      wizard.*                  # perguntas convertidas na mesma configuração
-  templates/
-    frontends/
-    backends/
-    integrations/               # dados, cache, containers, Kubernetes e operação
+    lib.rs                      # núcleo reutilizável
+    main.rs                     # saída, códigos e despacho da CLI
+    cli.rs                      # argumentos e precedência sobre receitas
+    config.rs                   # opções tipadas e schema TOML
+    catalog.rs                  # metadados, capacidades e validação do catálogo
+    planner.rs                  # validação e plano sem escrita de projetos
+    doctor.rs                   # consultas de versão de ferramentas
+  recipes/
   tests/
-  docs/gerador-web/
+  docs/
 ```
 
-São caminhos previstos, ainda não criados como módulos. Templates usados pelo binário devem acompanhar a distribuição: não depender do cwd ou de um clone do repositório. Avaliar inclusão no binário ou pacote de catálogo versionado; a primeira implementação deve privilegiar templates locais versionados e geração sem rede.
+Renderização, escrita, instalação e assistente ganharão módulos próprios nas próximas etapas. Os templates de fontes e adapters também terão diretórios separados dos metadados. Não será necessário colocar lógica do gerador em `ferramentas/devtool/src`.
+
+O catálogo já é embutido no binário; sua execução não depende do cwd nem de acesso ao clone. Veja a [arquitetura do pacote](arquitetura-do-pacote.md) e [como adicionar uma stack](adicionar-stack.md).
 
 Instaladores oficiais de Vite/Next/Nest podem ajudar a atualizar bases durante a manutenção. Invocá-los no runtime deve ser um modo explícito posterior, porque baixar um scaffolder é diferente de renderizar offline e pode instalar pacotes ou alterar defaults. A proposta inicial é distribuir bases testadas, com versões fixadas, e registrar sua origem.
 
@@ -37,7 +35,7 @@ Wizard, flags e receita alimentam a mesma representação tipada. O planner reso
 
 O catálogo descreve: ID/versão, linguagem/framework, runtimes, gerenciador de pacotes, capacidades, dependências compatíveis, opções de instalação, arquivos condicionais e documentação. Schema de receita é versionado independentemente da versão da CLI.
 
-Cada extensão deve implementar os pontos de integração concretos: imports, bootstrap, configuração, shutdown, arquivos de dependência, testes e documentação. Não basta copiar um YAML. O planejador detecta conflitos de caminho, placeholders pendentes e referências a serviços omitidos.
+Cada extensão deve implementar os pontos de integração concretos: imports, bootstrap, configuração, shutdown, arquivos de dependência, testes e documentação. Não basta copiar um YAML. O planejador atual detecta destinos inválidos/sobrepostos e valida dependências entre escolhas. A detecção de conflitos de arquivos renderizados e placeholders pendentes será implementada com o renderer.
 
 Publicar arquivos via staging no mesmo filesystem, verificando que o destino continua ausente. No layout de dois repositórios, renderizar/validar ambos antes de publicar; documentar recuperação se a publicação do segundo falhar. Nunca apagar diretórios preexistentes nem usar um rollback que remova arquivos que não pertencem à execução.
 
@@ -45,8 +43,8 @@ Publicar arquivos via staging no mesmo filesystem, verificando que o destino con
 
 | Etapa | Entrega | Critério de conclusão |
 | --- | --- | --- |
-| 0 | Especificação e catálogo pretendido | Fluxo, opções, limites e documentação registrados |
-| 1 | Núcleo Rust + templates list/show + plan + doctor | Receitas/flags validadas, plano sem efeitos e requisitos por operação |
+| 0 — concluída | Especificação e catálogo pretendido | Fluxo, opções, limites e documentação registrados |
+| 1 — concluída | Núcleo Rust + templates list/show + plan + doctor | Receitas/flags validadas, plano sem efeitos e requisitos por operação |
 | 2 | new + assistente + Express/TS e React/Vite | Geração individual e fullstack; testes/build reais das bases; instalação opcional |
 | 3 | Vanilla, Next, Nest e Axum | Seis bases e nove pares mínimos validados; organização respeita cada stack |
 | 4 | PostgreSQL, MongoDB e Redis | Integrações por backend e ausência completa quando desativadas |
@@ -54,7 +52,7 @@ Publicar arquivos via staging no mesmo filesystem, verificando que o destino con
 | 6 | Kubernetes | Manifests válidos, saúde/Services/imagens/volumes consistentes e guia manual |
 | 7 | Prometheus/Grafana | Métricas reais coletáveis, targets e dashboards funcionais |
 | 8 | Vault | Aplicação lê segredos pelo contrato; integração Compose/Kubernetes validada |
-| 9 | Distribuição e documentação final | Instalação de devtool, compatibilidade anterior e guias completos revisados |
+| 9 | Distribuição e documentação final | Instalação/distribuição do boilerplate, independência da devtool e guias completos revisados |
 
 As etapas organizam o trabalho; não retiram opções do escopo final aprovado. Só anunciar uma integração como disponível depois de validá-la. Não transformar uma fase parcial em um catálogo que aceita flags sem implementar seu efeito.
 
@@ -76,4 +74,4 @@ Execuções de teste de infraestrutura pertencem a ambiente isolado de validaç�
 
 Uma combinação só está pronta quando: arquivos são gerados corretamente; dependências e build passam; comportamento demonstrativo funciona; opções ausentes não deixam código residual; os passos documentados reproduzem o ambiente; e os limites estão explícitos. As aulas e os comandos existentes continuam verificados.
 
-Não há testes de runtime novos nesta fase documental. Quando começar a implementação, manter os checks do workspace e acrescentar testes conforme as responsabilidades forem implementadas.
+O núcleo já tem testes de validação, nove pares fullstack, extensão declarativa de linguagem, omissão de módulos, caminhos/symlinks, receitas, precedência e CLI sem ferramentas externas. Os testes de build das aplicações e de infraestrutura pertencem às etapas de geração.

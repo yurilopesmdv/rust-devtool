@@ -20,4 +20,4 @@ O `cargo run -- help` da raiz também funciona: este pacote é o membro padrão 
 
 Os caminhos passados à CLI são relativos ao diretório de onde você executa o comando. Os exemplos acima imprimem o resultado e não sobrescrevem os arquivos de entrada.
 
-A evolução planejada desta CLI inclui um [gerador de projetos web](docs/gerador-web/README.md), com catálogo de stacks, arquitetura padronizada e infraestrutura opcional. O gerador está em fase de especificação; os comandos novos ainda não estão disponíveis. A [trilha de aprendizado](../../guia/README.md) continua independente.
+O gerador de projetos web é um [pacote separado](../boilerplate/README.md), com CLI, catálogo e integrações próprios. Este pacote permanece dedicado aos utilitários de terminal. A [trilha de aprendizado](../../guia/README.md) continua independente.

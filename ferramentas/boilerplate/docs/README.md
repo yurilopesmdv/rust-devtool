@@ -1,10 +1,10 @@
 # Gerador de projetos web — especificação
 
-Status: planejamento, com escopo definido em conjunto. O gerador ainda não foi implementado. Os exemplos com `devtool new`, `plan`, `doctor` e `templates` descrevem a interface proposta e ainda não funcionam. Os comandos disponíveis hoje estão no [README da CLI](../../README.md).
+Status: núcleo de planejamento implementado em pacote independente. `boilerplate templates`, `plan` e `doctor` funcionam. A geração (`new`), o assistente e os adapters ainda não foram implementados. Consulte o [README do pacote](../README.md) para os comandos disponíveis.
 
 ## Objetivo e escopo definido
 
-Criar rapidamente uma base web executável, com estrutura consistente e integrações opcionais reais. A ferramenta será escrita em Rust, preservando os comandos existentes e o [guia de aprendizado](../../../../guia/README.md).
+Criar rapidamente uma base web executável, com estrutura consistente e integrações opcionais reais. A ferramenta tem seu próprio pacote Rust, separado dos utilitários de devtool e do [guia de aprendizado](../../../guia/README.md).
 
 - Frontend: HTML/CSS/JavaScript sem framework, React com Vite ou Next.js.
 - Backend: Node.js/TypeScript com Express, NestJS ou Rust com Axum.
@@ -29,10 +29,14 @@ A decisão final de não executar infraestrutura substitui a proposta inicial de
 | [Plano de implementação](implementacao.md) | Módulos Rust, entregas, testes e critérios de conclusão |
 | [Fontes e decisões](referencias.md) | Documentação oficial consultada e justificativas |
 
+## Núcleo já disponível
+
+Consulte a [arquitetura do pacote](arquitetura-do-pacote.md) e o [guia de extensão de linguagens](adicionar-stack.md). O pacote é independente de devtool e executa em WSL/Linux.
+
 ## Exemplo de resultado esperado
 
 Uma escolha de React/Vite + Express/TS, PostgreSQL, Redis, Docker/Compose, Kubernetes, monitoria e Vault deve gerar: duas aplicações conectadas; configuração de dados/cache; imagens; ambiente Compose; manifests de laboratório; coleta de métricas; dashboards provisionados; integração de leitura de segredos; e guias para instalar ferramentas, preparar valores locais e executar cada parte.
 
 A mesma escolha sem banco, cache e infraestrutura deve gerar somente as aplicações, os testes, a configuração básica e sua documentação. Não deve haver imports quebrados ou parâmetros obrigatórios de serviços omitidos.
 
-Nenhuma dessas combinações está disponível até concluir as etapas de implementação e validação descritas no plano. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.
+As combinações podem ser planejadas, mas ainda não podem ser geradas. A geração depende das próximas etapas de implementação e validação. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.

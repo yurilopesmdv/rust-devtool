@@ -1,0 +1,32 @@
+# Arquitetura atual do pacote
+
+[Guia de uso](../README.md) · [Especificação](README.md)
+
+`rust-boilerplate` é um pacote Cargo independente de `rust-devtool`. Não importa módulos dos utilitários, não altera seu dispatcher e possui seu próprio executável e biblioteca. Ambos compartilham apenas o workspace/lockfile, como as aulas.
+
+## Caminho de uma operação
+
+```text
+CLI/flags ─────────────┐
+                      ├── Recipe tipada ── validação/planner ── Plan ── texto/JSON
+TOML/schema validado ─┘                          ↑
+                                           catálogo embutido
+```
+
+`cli.rs` interpreta argumentos com Clap e aplica somente flags presentes sobre a receita. `config.rs` desserializa TOML via Serde, rejeita campos desconhecidos e verifica versões. IDs de templates são strings consultadas no catálogo: não são um enum de linguagens fechado.
+
+`catalog.rs` carrega metadados validados. `build.rs` descobre automaticamente os arquivos `.toml` de `catalog/`, ordena-os e embute seu conteúdo durante a compilação. O catálogo distribuído acompanha a versão do binário; editar arquivos ao lado de um binário já instalado não altera o comportamento dele.
+
+`planner.rs` valida papéis, destinos, layouts, escolhas de serviços e capacidades. Calcula caminhos a partir dos metadados, com caminhos condicionais por integração. Não executa comandos externos, não consulta runtimes nem escreve no destino. Consultas de filesystem servem para verificar destinos e resolver ancestrais existentes.
+
+`doctor.rs` é a única camada desta etapa que executa ferramentas externas. Usa `std::process::Command` com programa/argumentos separados e stdin fechado. Os comandos de versão vêm do catálogo confiável embutido ou da lista interna de ferramentas de infraestrutura; receitas não podem introduzir comandos arbitrários.
+
+`main.rs` cuida da apresentação e dos códigos de saída. Planos e diagnósticos podem ser consumidos em JSON sem interpretar texto de terminal. A biblioteca permite testar o núcleo sem simular entrada interativa.
+
+## Fronteiras para as próximas etapas
+
+O assistente deverá produzir a mesma Recipe usada pelas flags. O renderer deverá consumir o plano e templates/adapters versionados. O writer deverá publicar somente em destinos novos e implementar recuperação de falhas. O installer deverá receber comandos estruturados e a decisão explícita de instalar.
+
+Nenhuma dessas camadas inicia infraestrutura. Os futuros arquivos de Compose/Kubernetes e seus guias pertencem ao projeto gerado. As execuções avulsas de utilitários continuam exclusivamente em devtool.
+
+O catálogo atual contém intenções de capacidades; ainda não é uma promessa de que há código gerável para elas. Status `planned` e `planning-only` tornam essa distinção explícita na interface.

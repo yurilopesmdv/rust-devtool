@@ -1,10 +1,10 @@
 # Fluxo e comandos propostos
 
-[Índice](README.md). Interface em planejamento; nenhum comando novo desta página está implementado.
+[Índice](README.md). `templates list/show`, `plan` e `doctor` já existem. As seções sobre `new`, confirmação, instalação e assistente são o contrato para as próximas etapas. Consulte os exemplos atuais no [guia de uso](../README.md).
 
 ## Assistente interativo
 
-`devtool new` abre o fluxo no terminal. Cada pergunta oferece uma explicação curta e opção de voltar; mudar uma escolha invalida somente as decisões dependentes.
+`boilerplate new` abre o fluxo no terminal. Cada pergunta oferece uma explicação curta e opção de voltar; mudar uma escolha invalida somente as decisões dependentes.
 
 1. Tipo: frontend, backend ou fullstack.
 2. Nome e destino: um diretório novo; fullstack permite monorepo ou dois diretórios para repositórios separados.
@@ -23,24 +23,24 @@ Perguntas de banco/cache/Vault ficam fora do fluxo de frontend puro. Next.js pod
 
 ## Interface por flags
 
-O executável instalado deverá se chamar `devtool`. O pacote Cargo permanece `rust-devtool`; os comandos atuais continuam disponíveis. Exemplos do contrato pretendido:
+O executável é `boilerplate`, no pacote Cargo `rust-boilerplate`. `rust-devtool` continua independente. Abaixo há comandos atuais de consulta/plano e comandos futuros de geração, identificados nos comentários:
 
 ```sh
 # Consultar catálogo e requisitos, sem criar um projeto.
-devtool templates list
-devtool templates show express-ts
-devtool doctor --template express-ts
+boilerplate templates list
+boilerplate templates show express-ts
+boilerplate doctor --template express-ts
 
-# Assistente.
-devtool new
+# FUTURO: assistente, ainda indisponível.
+boilerplate new
 
-# Backend sem integrações externas, sem perguntas nem instalação.
-devtool new minha-api --type backend --backend express-ts \
+# FUTURO: geração de backend, ainda indisponível.
+boilerplate new minha-api --type backend --backend express-ts \
   --database none --cache none --containers none --kubernetes none \
   --monitoring none --secrets env --install no --non-interactive
 
 # Plano completo antes de gerar.
-devtool plan plataforma --type fullstack --layout monorepo \
+boilerplate plan plataforma --type fullstack --layout monorepo \
   --frontend react-vite-ts --backend express-ts \
   --database postgres --database-location local \
   --cache redis --cache-location local --containers compose \
@@ -48,11 +48,11 @@ devtool plan plataforma --type fullstack --layout monorepo \
   --image-web registry.example.com/plataforma-web:0.1.0 \
   --image-api registry.example.com/plataforma-api:0.1.0 \
   --monitoring prometheus-grafana \
-  --secrets vault --vault-location local --install no --non-interactive
+  --secrets vault --vault-location local --non-interactive
 
 # O mesmo contrato de opções será aceito por new.
-# Receita sem valores secretos para repetir uma combinação.
-devtool new plataforma --config receita.toml --install no --non-interactive
+# FUTURO: geração a partir de receita, ainda indisponível.
+boilerplate new plataforma --config receita.toml --install no --non-interactive
 ```
 
 `plan` nunca escreve arquivos de projeto, instala pacotes ou consulta daemons. Pode produzir o plano em JSON para automação. `new` imprime o mesmo plano antes de aplicá-lo.
@@ -88,7 +88,7 @@ monitoring = "none"
 secrets = "env"
 ```
 
-O schema concreto será implementado e validado na primeira etapa do núcleo. Não colocar URLs com credenciais na receita. A escolha de instalar pertence à execução (`--install`), não à receita do projeto.
+O schema 1 já é validado pelo núcleo; `plan` não aceita `--install` porque nunca executa instalação. Não colocar URLs com credenciais na receita. A escolha de instalar pertence à execução (`--install`), não à receita do projeto.
 
 No layout `split`, a interface deve aceitar `--web-dir` e `--api-dir` para destinos independentes. As flags `--image-web`/`--image-api` definem referências de imagem; para projetos individuais, aceitar `--image`. Os endereços `registry.example.com` são placeholders e precisam ser substituídos antes de construir/publicar/aplicar recursos.
 

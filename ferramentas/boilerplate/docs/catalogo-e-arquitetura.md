@@ -77,7 +77,7 @@ plataforma/
   apps/api/
   infra/                    # apenas os módulos escolhidos
   docs/
-  devtool.toml              # receita sem segredos
+  boilerplate.toml              # receita sem segredos
 
 # Separados: duas raízes, cada uma com docs e receita própria
 plataforma-web/
