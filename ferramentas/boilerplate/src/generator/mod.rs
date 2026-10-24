@@ -94,7 +94,7 @@ pub fn run(args: NewArgs, catalog: &Catalog) -> Result<(), Error> {
                 };
                 if !setup {
                     return Err(Error::operation(format!(
-                        "Node {version} ausente/incompatível. Projeto preservado. Instale/carregue essa versão via nvm e rode npm install na aplicação, ou execute novamente em um destino novo com --setup-node yes."
+                        "Node {version} ausente/incompatível. Projeto preservado. Instale/carregue essa versão via nvm e rode npm ci na aplicação, ou execute novamente em um destino novo com --setup-node yes."
                     )));
                 }
                 runtime::Runtime::install_node(version)?
