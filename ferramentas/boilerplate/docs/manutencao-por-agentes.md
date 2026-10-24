@@ -12,8 +12,10 @@ Os projetos gerados recebem `AGENTS.md` com comandos de validação, separação
 
 - `catalog/*.toml`: IDs, papéis, linguagem, comandos, portas e capacidades. IDs são consultados no catálogo; não criar switches de linguagens na CLI.
 - `templates/<id>/`: fontes e lockfiles embutidos. `@compose/` só entra quando Compose é selecionado. `build.rs` descobre os arquivos automaticamente.
-- `src/generator/render.rs`: substituições, arquivos comuns e composição por layout. Não executar ferramentas aqui.
+- `src/generator/render.rs`: substituições, arquivos comuns e composição por layout. Não executar instalação ou infraestrutura aqui; a etapa de formatação é isolada em format.rs.
 - `writer.rs`: staging e publicação sem sobrescrita. Não apagar projetos já publicados em uma falha posterior.
+- `format.rs`: dprint embutido para JS/TS e rustfmt via stdin; não baixar ferramentas.
+- `architecture.rs`: mapa de camadas de cada API.
 - `runtime.rs`: detecção Node/nvm e execução da instalação solicitada. Não instalar frameworks globalmente.
 - `vcs.rs`: Git/GitHub e checagens; nenhuma publicação sem escolha explícita.
 - `wizard.rs`: perguntas, convertidas na mesma Recipe das flags/TOML.
@@ -35,8 +37,8 @@ cargo test --workspace --all-targets --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Para Node, validar `npm ci`, typecheck, testes e build nas bases geradas. Para Rust, `cargo test --locked`, formatação e Clippy. Verificar ESM e a opção CommonJS do Express, monorepo/split, destino existente e falha de instalação. Testes GitHub usam executáveis simulados; não criar repositórios reais como parte da suíte.
+Para Node, validar `npm ci` e `npm run check` nas bases geradas. Para Python, uv sync --locked, Ruff check/format --check e pytest. Para Rust, `cargo test --locked`, formatação e Clippy. Verificar ESM e a opção CommonJS do Express, monorepo/split, destino existente e falha de instalação. Testes GitHub usam executáveis simulados; não criar repositórios reais como parte da suíte.
 
 A revisão atual validou Node 24.15.0, Rust 1.99.1 e os lockfiles distribuídos. Novas linguagens continuam usando metadados e assets próprios; seu provisionamento de runtime e adapters exigem validação adicional antes de serem disponibilizados.
 
-A composição Node poda lockfiles de apoio por dependências alcançáveis, removendo drivers não escolhidos. Rust distribui snapshots de Cargo.lock por combinação; ao alterar dependências/flags de features, atualize essas combinações e execute validações com --locked. Para validação reproduzível, veja [validacao.md](validacao.md).
+A composição Node poda lockfiles de apoio por dependências alcançáveis, removendo drivers não escolhidos. Rust e Python distribuem snapshots de Cargo.lock/uv.lock por combinação; ao alterar dependências/flags de features, atualize essas combinações e execute validações com --locked. Para validação reproduzível, veja [validacao.md](validacao.md).

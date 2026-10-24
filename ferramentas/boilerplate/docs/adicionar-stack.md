@@ -2,38 +2,38 @@
 
 [Guia de uso](../README.md) · [Arquitetura do pacote](arquitetura-do-pacote.md)
 
-O catálogo é orientado por metadados, sem enum de linguagens. Python, Go e Java poderão ter seus próprios IDs, comandos e estruturas. Adicionar uma linguagem ao planejador é diferente de entregar um boilerplate gerável: o primeiro passo cadastra a intenção; o segundo exige fontes, adapters, dependências fixadas e testes reais.
+O catálogo é orientado por metadados, sem enum de linguagens. Python já está implementado como exemplo completo. Go e Java poderão ter seus próprios IDs, comandos e estruturas. Adicionar uma linguagem ao planejador é diferente de entregar um boilerplate gerável: o primeiro passo cadastra a intenção; o segundo exige fontes, adapters, dependências fixadas e testes reais.
 
 ## 1. Adicionar metadados
 
-Crie `catalog/python-fastapi.toml`, por exemplo. O arquivo abaixo é uma proposta de cadastro, não um template já entregue:
+Crie `catalog/go-chi.toml`, por exemplo. O arquivo abaixo é uma proposta de cadastro, não um template já entregue:
 
 ```toml
-id = "python-fastapi"
+id = "go-chi"
 role = "backend"
-language = "Python"
-framework = "FastAPI"
+language = "Go"
+framework = "Chi"
 port = 3000
 container_port = 3000
 architecture = "layered"
 status = "planned"
-package_manager = "uv"
-paths = ["app/controllers/", "app/services/", "tests/", "docs/"]
+package_manager = "go"
+paths = ["cmd/api/", "internal/services/", "tests/", "docs/"]
 capabilities = ["postgres"]
-install = ["uv", "sync", "--locked"]
+install = ["go", "mod", "download"]
 
 [[requirements]]
-command = "uv"
-args = ["--version"]
+command = "go"
+args = ["version"]
 purpose = "Instalar dependências; não é necessário para planejar"
 
 [conditional_paths]
-postgres = ["app/repositories/", "app/adapters/postgres/"]
+postgres = ["internal/repositories/", "internal/database/"]
 ```
 
 Ao recompilar, `build.rs` inclui o arquivo automaticamente; não é necessário alterar um dispatcher ou registrar o ID no código da CLI. `language`, `framework` e `package_manager` são metadados textuais. Campos desconhecidos são rejeitados. IDs precisam ser únicos; caminhos absolutos, com `..` ou barras invertidas são rejeitados.
 
-Os comandos são arrays de argumentos, não strings de shell. Os requisitos executam consultas locais de versão no doctor; revise cada programa e argumento antes de adicionar ao catálogo, sem operações de instalação ou acesso a serviços. `install` é somente informativo no plano atual.
+Os comandos são arrays de argumentos, não strings de shell. Os requisitos executam consultas locais de versão no doctor; revise cada programa e argumento antes de adicionar ao catálogo, sem operações de instalação ou acesso a serviços. `install` é somente informativo em plan; new o executa quando a instalação é escolhida. Novos gerenciadores também precisam de seus checks documentados e de suporte no script de validação.
 
 ## 2. Declarar capacidades e caminhos condicionais
 
@@ -48,20 +48,22 @@ Omitir uma capacidade faz o planner rejeitar uma escolha incompatível. Não cop
 Depois de adicionar o arquivo, na raiz:
 
 ```sh
-cargo run -p rust-boilerplate -- templates show python-fastapi
-cargo run -p rust-boilerplate -- plan minha-api --type backend --backend python-fastapi
-cargo run -p rust-boilerplate -- doctor --template python-fastapi
+cargo run -p rust-boilerplate -- templates show go-chi
+cargo run -p rust-boilerplate -- plan minha-api --type backend --backend go-chi
+cargo run -p rust-boilerplate -- doctor --template go-chi
 cargo test -p rust-boilerplate --locked
 ```
 
-O doctor exige `uv` apenas nesse exemplo; o planner deve continuar funcionando sem ele. Esses comandos do exemplo dependem de você primeiro criar os metadados; Python não faz parte das seis stacks já cadastradas.
+O doctor exige `go` apenas nesse exemplo; o planner continua funcionando sem ele. Os comandos dependem de criar esses metadados: Go ainda não faz parte das sete stacks prontas. Para uma referência implementada, examine catalog/python-fastapi.toml, templates/python-fastapi e src/generator/integrations/python.rs.
 
-Inclua testes com a nova estrutura e com uma opção incompatível. Já existe um teste que registra Python em memória e demonstra a extensão sem alterar CLI ou caminhos internos do planner.
+Inclua testes com a nova estrutura e com uma opção incompatível. Existe um teste que registra uma stack em memória e demonstra a extensão sem alterar CLI ou caminhos internos do planner.
 
 ## 4. Entregar a geração depois do cadastro
 
-Quando o renderer existir, acrescente fontes, configuração de runtime, comandos de build/test/lint e documentação. Implemente adapters por stack para as capacidades anunciadas: banco, cache, segredos, observabilidade e empacotamento. Fixe versões e valide lockfiles, builds e os comandos publicados.
+Acrescente fontes, configuração de runtime, comandos de build/test/lint e documentação. Implemente adapters por stack para as capacidades anunciadas: banco, cache, segredos, observabilidade e empacotamento. Fixe versões e valide lockfiles, builds e os comandos publicados.
 
 Teste ao menos a base mínima, a ausência de módulos opcionais, as integrações suportadas e a conexão com um frontend quando aplicável. Só então altere o status para `ready` e disponibilize a stack em `new`. Não basta mudar o status no TOML: new exige fontes embutidas para o ID e rejeita integrações sem adapter. Os assets ficam em `templates/<id>/`; os arquivos opcionais de Compose ficam em `@compose/`. Consulte [manutenção por agentes](manutencao-por-agentes.md).
 
 Java e Go seguirão o mesmo processo, com ferramentas próprias e seus caminhos convencionais. Não há templates dessas linguagens nem instaladores de runtimes nesta revisão.
+
+Os fontes compostos passam por generator/format.rs antes da publicação. JS/TS usa dprint embutido, Rust usa rustfmt; Python distribui fontes/fragmentos previamente formatados e testa suas combinações com Ruff. Novas linguagens devem definir esse contrato e um caminho no scripts/validate-generated.py, sem formatadores ou CLIs instalados globalmente.

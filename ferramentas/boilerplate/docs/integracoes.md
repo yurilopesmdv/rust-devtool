@@ -11,6 +11,7 @@ O assistente e as flags oferecem as mesmas escolhas. Nenhum banco, cache, runtim
 | Express/TS | pg ou driver MongoDB | node-redis | HTTP + processo | Arquivos de configuração |
 | Nest/TS | Mesmos drivers, mantendo controllers/providers | node-redis | HTTP + processo | Arquivos de configuração |
 | Rust/Axum | SQLx ou driver MongoDB | redis-rs | HTTP | Arquivos de configuração |
+| Python/FastAPI | psycopg/pool ou PyMongo async | redis-py async | HTTP | Arquivos de configuração |
 | Next standalone | Na API separada | Na API separada | Processo Node em /metrics | Na API separada |
 | React/Vite e vanilla | Na API separada | Na API separada | nginx + exporter em containers | Na API separada |
 
@@ -33,7 +34,7 @@ cargo run -p rust-boilerplate -- new plataforma \
   --install yes --setup-node no --github no --non-interactive
 ```
 
-Troque `express-ts` por `nest-ts` ou `rust-axum`; `mongodb` substitui `postgres`. `--install no` permite apenas gerar. Para dois repositórios, use `--layout split --web-dir ... --api-dir ...`, omitindo `--destination`.
+Troque `express-ts` por `nest-ts` ou `rust-axum`/`python-fastapi`; `mongodb` substitui `postgres`. `--install no` permite apenas gerar. Para dois repositórios, use `--layout split --web-dir ... --api-dir ...`, omitindo `--destination`.
 
 O README e `docs/OPERACAO.md` gerados explicam os passos exatos daquela seleção. É necessário preencher valores próprios em arquivos ignorados antes de executar a infraestrutura. O bootstrap de Vault é explícito: não existe root token pronto no boilerplate.
 
@@ -49,6 +50,7 @@ O exemplo persistente expõe GET e POST em `/api/v1/example`; a gravação valid
 
 - Node: na API, `npm run build && npm run db:prepare`.
 - Rust: na API, `cargo run --locked --example prepare`.
+- Python: na API, `uv run --locked --env-file .env python -m app.infrastructure.prepare`.
 - Kubernetes: Job em `infra/kubernetes/jobs/prepare.yaml`, aplicado manualmente.
 
 Readiness consulta o banco obrigatório. Redis usa TTL de 30s e chave com prefixo do projeto; indisponibilidade do cache permite seguir pela origem. Isso é cache-aside com consistência eventual, não uma transação distribuída.

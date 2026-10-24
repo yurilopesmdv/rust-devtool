@@ -2,7 +2,7 @@
 
 Pacote `rust-boilerplate`, executável `boilerplate`. Este pacote é independente de `ferramentas/devtool`: utilitários de hash/JSON continuam lá; catálogo, planejamento e integrações de projetos ficam aqui.
 
-**Disponível:** seis bases web, assistente, receitas/planos, instalação local de dependências, Node/nvm, Git/GitHub, PostgreSQL/MongoDB, Redis, Docker/Compose, Kubernetes, Prometheus/Grafana e Vault opcionais. Cada opção desativada é omitida dos fontes, dependências e recursos.
+**Disponível:** sete bases web, assistente, receitas/planos, instalação local de dependências, Node/nvm, Git/GitHub, PostgreSQL/MongoDB, Redis, Docker/Compose, Kubernetes, Prometheus/Grafana e Vault opcionais. Inclui Python/FastAPI, lint e formatação por linguagem. Cada opção desativada é omitida dos fontes, dependências e recursos.
 
 O gerador cria arquivos e instala bibliotecas quando autorizado; não inicia infraestrutura, cria cluster ou faz publicação sem escolha explícita. Veja [integrações e exemplos completos](docs/integracoes.md) e [validação e limites do ambiente](docs/validacao.md).
 
@@ -62,7 +62,7 @@ cargo run -p rust-boilerplate -- templates show express-ts
 cargo run -p rust-boilerplate -- templates list --json
 ```
 
-Bases: `vanilla-js`, `react-vite-ts`, `next-ts`, `express-ts`, `nest-ts` e `rust-axum`. O catálogo é embutido no binário e não exige um clone no diretório atual nem conexão à internet na execução.
+Bases: `vanilla-js`, `react-vite-ts`, `next-ts`, `express-ts`, `nest-ts`, `rust-axum` e `python-fastapi`. O catálogo é embutido no binário e não exige um clone no diretório atual nem conexão à internet na execução.
 
 ## Planejar sem criar arquivos
 
@@ -146,11 +146,21 @@ cargo run -p rust-boilerplate -- doctor --template express-ts \
 cargo run -p rust-boilerplate -- doctor --template express-ts --git --github
 ```
 
-Doctor executa somente consultas de versão dos executáveis previstos para a stack: Node/npm, Rust/Cargo ou nenhum runtime obrigatório para vanilla. Com receita, acrescenta Docker/Compose e kubectl somente quando selecionados. `--template` precisa fazer parte da receita. Em fullstack, execute doctor para cada template se quiser conferir os dois runtimes.
+Doctor executa somente consultas de versão dos executáveis previstos para a stack: Node/npm, Rust/Cargo ou uv para Python; vanilla usa Node/npm somente para as ferramentas de desenvolvimento. Com receita, acrescenta Docker/Compose e kubectl somente quando selecionados. `--template` precisa fazer parte da receita. Em fullstack, execute doctor para cada template se quiser conferir os dois runtimes.
 
 Node é verificado contra a versão solicitada (padrão 24 ou valor da receita), usando uma versão já instalada no nvm quando necessário. Outros requisitos mostram presença/versão; não há certificação de todas as combinações de runtime. Docker é consultado com `--version` e `compose version`; kubectl com `version --client=true`. Não é verificado acesso ao daemon, cluster, bancos, Vault ou serviços de monitoria. Para planejar, nenhuma dessas ferramentas é obrigatória.
 
 Códigos: 0 sucesso; 1 falha operacional ou ferramenta ausente/falhando; 2 argumentos/configuração inválidos. Em JSON, doctor mantém os resultados em stdout e diagnósticos em stderr. `new` cancela com código 130 quando o usuário recusa a confirmação ou a entrada interativa encerra. Falhas de instalação/Git/GitHub preservam os projetos já publicados.
+
+## Python, arquitetura e qualidade
+
+```sh
+cargo run -p rust-boilerplate -- new minha-api-python --type backend --backend python-fastapi
+```
+
+O destino sugerido continua sendo `$HOME/projects/minha-api-python`. Python usa uv, Python 3.13, FastAPI, pytest e Ruff, com `.venv` e `uv.lock`. A instalação escolhida no assistente executa `uv sync --locked`; se uv estiver ausente, os fontes são preservados com instruções. Não há instalação global de bibliotecas Python.
+
+Toda API inclui `docs/ARQUITETURA.md`. Consultas de domínio ficam nos repositories; configuração lê valores; clientes de banco gerem conexões e readiness. Nest possui `ExampleModule` e injeta o repository no service. Rust separa controller/service/repository. Consulte a [revisão de arquitetura](docs/revisao-de-arquitetura.md), o [guia Python](docs/python.md) e os [comandos de lint e formatação](docs/qualidade.md).
 
 ## Desenvolvimento e extensão
 
@@ -160,4 +170,4 @@ cargo test -p rust-boilerplate --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). A geração web e seus adapters estão implementados. A construção/execução das imagens e o deploy em cluster não foram realizados neste ambiente; consulte as [evidências de validação](docs/validacao.md). Mobile e novas stacks ficam para evolução do catálogo.
+Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). A geração web e seus adapters estão implementados. A construção/execução das imagens e o deploy em cluster não foram realizados neste ambiente; consulte as [evidências de validação](docs/validacao.md). Mobile, Java e outras stacks ficam para evolução do catálogo.

@@ -1,6 +1,6 @@
 # Plano de implementação e validação
 
-[Índice](README.md). Etapas 1–3 entregues: núcleo, assistente e geração das seis bases, instalação de dependências e Git/GitHub. As etapas de dados/cache, Kubernetes, monitoria e Vault também estão implementadas. A execução Docker/cluster depende do ambiente de destino; veja validacao.md.
+[Índice](README.md). Etapas 1–3 entregues: núcleo, assistente e geração das sete bases, instalação de dependências e Git/GitHub. As etapas de dados/cache, Kubernetes, monitoria e Vault também estão implementadas. A execução Docker/cluster depende do ambiente de destino; veja validacao.md.
 
 ## Organização interna
 
@@ -46,7 +46,7 @@ Publicar arquivos via staging no mesmo filesystem, verificando que o destino con
 | 0 — concluída | Especificação e catálogo pretendido | Fluxo, opções, limites e documentação registrados |
 | 1 — concluída | Núcleo Rust + templates list/show + plan + doctor | Receitas/flags validadas, plano sem efeitos e requisitos por operação |
 | 2 — concluída | new + assistente + Express/TS e React/Vite | Geração individual e fullstack; testes/build reais das bases; instalação opcional |
-| 3 — concluída | Vanilla, Next, Nest e Axum | Seis bases e nove pares mínimos validados; organização respeita cada stack |
+| 3 — concluída | Vanilla, Next, Nest e Axum | Sete bases e doze pares mínimos validados; organização respeita cada stack |
 | 4 — implementada | PostgreSQL, MongoDB e Redis | Integrações por backend e ausência completa quando desativadas |
 | 5 — gerada/validada como configuração | Docker/Compose e contratos web/API | Imagens construídas, conexão válida e redes documentadas para os dois layouts |
 | 6 — gerada/validada como configuração | Kubernetes | Manifests válidos, saúde/Services/imagens/volumes consistentes e guia manual |
@@ -62,7 +62,7 @@ As etapas organizam o trabalho; não retiram opções do escopo final aprovado. 
 - Geração em diretórios temporários: rejeitar destino existente/symlink, diretórios sobrepostos, cancelamento, falhas de escrita, placeholders não resolvidos e proteção de conteúdo preexistente.
 - Conteúdo: caminhos, imports, manifestos de dependências e documentação refletem escolhas. Testar explicitamente que banco/cache/monitoria/Vault desativados não aparecem.
 - Bases: instalar com versões controladas e executar build, testes e lint de cada stack, incluindo biblioteca/API Rust e health HTTP real.
-- Combinações: nove pares mínimos; cada backend com cada banco; cache ligado/desligado; ambos os layouts; Kubernetes com imagem existente e com Dockerfile; serviços locais/externos; combinações críticas completas.
+- Combinações: doze pares mínimos; cada backend com cada banco; cache ligado/desligado; ambos os layouts; Kubernetes com imagem existente e com Dockerfile; serviços locais/externos; combinações críticas completas.
 - Infraestrutura: validar Compose, construir imagens e validar/renderizar Kubernetes. YAML sintaticamente válido sozinho não comprova conexão funcional.
 - Integração em ambiente de teste isolado: frontend alcança API; dados/cache funcionam; métricas chegam ao Prometheus e datasource/dashboard ao Grafana; segredo chega ao processo pelo Vault.
 - Instalação: simular e testar falhas do gerenciador preservando arquivos; não iniciar serviços como efeito lateral.
@@ -74,4 +74,4 @@ Execuções de teste de infraestrutura pertencem a ambiente isolado de validaç�
 
 Uma combinação só está pronta quando: arquivos são gerados corretamente; dependências e build passam; comportamento demonstrativo funciona; opções ausentes não deixam código residual; os passos documentados reproduzem o ambiente; e os limites estão explícitos. As aulas e os comandos existentes continuam verificados.
 
-O núcleo já tem testes de validação, nove pares fullstack, extensão declarativa de linguagem, omissão de módulos, caminhos/symlinks, receitas, precedência e CLI sem ferramentas externas. Os testes de geração também verificam arquivos, layouts, ESM/CommonJS, staging, ausência de escrita para adapters indisponíveis e Git/GitHub com comandos simulados. As quatro bases Node foram instaladas e passaram em typecheck/test/build; Rust/Axum passou em test/Clippy. As combinações de dados foram executadas com serviços locais autenticados e Vault Agent real; containers/cluster não foram executados. Consulte [validação](validacao.md) para a evidência e reprodução.
+O núcleo já tem testes de validação, doze pares fullstack, extensão declarativa de linguagem, omissão de módulos, caminhos/symlinks, receitas, precedência e CLI sem ferramentas externas. Os testes de geração também verificam arquivos, layouts, ESM/CommonJS, staging, ausência de escrita para adapters indisponíveis e Git/GitHub com comandos simulados. As cinco bases com ferramentas npm passaram em lint/formatação/typecheck/test/build; Rust/Axum passou em formatação/test/Clippy, e Python/FastAPI em Ruff/pytest nas combinações opcionais. As combinações de dados foram executadas com serviços locais autenticados e Vault Agent real; containers/cluster não foram executados. Consulte [validação](validacao.md) para a evidência e reprodução.

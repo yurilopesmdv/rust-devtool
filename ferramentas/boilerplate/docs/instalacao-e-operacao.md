@@ -12,7 +12,7 @@ cargo run -p rust-boilerplate -- plan minha-api --type backend --backend express
 cargo run -p rust-boilerplate -- doctor --template express-ts
 ```
 
-Para instalação no PATH e exemplos completos, consulte o [README do pacote](../README.md). As seis bases já são geráveis com `new`, incluindo instalação local de dependências quando escolhida; veja [criação e instalação](criacao-e-instalacao.md) e [Git/GitHub](git-e-github.md). A devtool continua separada e seus comandos estão no [guia dos utilitários](../../devtool/README.md).
+Para instalação no PATH e exemplos completos, consulte o [README do pacote](../README.md). As sete bases já são geráveis com `new`, incluindo instalação local de dependências quando escolhida; veja [criação e instalação](criacao-e-instalacao.md) e [Git/GitHub](git-e-github.md). A devtool continua separada e seus comandos estão no [guia dos utilitários](../../devtool/README.md).
 
 ## Distribuição
 
@@ -24,11 +24,12 @@ A experiência segue os exemplos do repositório `tools`: comando no PATH, docum
 
 | Operação | Requisito |
 | --- | --- |
-| Gerar arquivos com binário distribuído | Binário boilerplate; sem Node/Docker obrigatórios para renderizar |
+| Gerar arquivos com binário distribuído | Binário boilerplate para JS/TS/Python; Rust também requer rustfmt; sem daemon Docker |
 | Compilar o gerador localmente | Rust/Cargo e componentes conforme o guia do repositório |
 | Executar frontend vanilla | Navegador e servidor HTTP local documentado |
 | Instalar/executar stacks Node | Node e gerenciador validado pelo template |
 | Instalar/executar API Rust | Toolchain Rust compatível com o template |
+| Instalar/executar API Python | uv; Python 3.13 é selecionado/obtido pelo uv |
 | Executar ambiente Compose | Docker Engine/alternativa compatível e plugin Compose |
 | Construir/publicar imagens | Ferramenta de build e registry quando necessário |
 | Usar manifests Kubernetes | kubectl, cluster/contexto e requisitos do overlay |
@@ -59,8 +60,8 @@ Documentação complementar deve estar em `docs/` apenas quando a opção estive
 
 ## Instalação de dependências ao final da geração
 
-O assistente apresenta o comando e pede a escolha instalar/pular. Para vanilla sem pacotes, informa que a etapa não se aplica. No fullstack, mostra os diretórios e operações de cada aplicação; uma falha não é anunciada como sucesso total.
+O assistente apresenta o comando e pede a escolha instalar/pular. Em vanilla, a instalação prepara somente as ferramentas locais de desenvolvimento. No fullstack, mostra os diretórios e operações de cada aplicação; uma falha não é anunciada como sucesso total.
 
 Instalar dependências pode executar scripts definidos pelo ecossistema. O resumo informa esse efeito e as versões previstas. A instalação não inicia serviços, aplica migrations, baixa charts ou configura um cluster. Quando o usuário pula, o projeto ainda deve conter instruções suficientes para executar a instalação posteriormente.
 
-Sem terminal interativo, não perguntar. `--install yes` autoriza a instalação de dependências da aplicação; `--install no` é o padrão de automação. Uma falha de instalação retorna erro, preserva o projeto e imprime o diretório e o comando para repetir.
+Sem terminal interativo, não perguntar. `--install yes` autoriza a instalação de dependências da aplicação; é obrigatório informar `--install yes` ou `--install no` em automação. Uma falha de instalação retorna erro, preserva o projeto e imprime o diretório e o comando para repetir.

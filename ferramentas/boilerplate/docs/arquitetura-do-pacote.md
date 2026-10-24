@@ -29,6 +29,8 @@ O assistente já produz a mesma Recipe das flags. O renderer usa fontes/lockfile
 
 Veja [manutenção por agentes](manutencao-por-agentes.md) para os módulos, contratos e testes.
 
-Nenhuma dessas camadas inicia infraestrutura. Os futuros arquivos de Compose/Kubernetes e seus guias pertencem ao projeto gerado. As execuções avulsas de utilitários continuam exclusivamente em devtool.
+Nenhuma dessas camadas inicia infraestrutura. Os arquivos de Compose/Kubernetes e seus guias pertencem ao projeto gerado. As execuções avulsas de utilitários continuam exclusivamente em devtool.
 
-As capacidades das seis bases têm adapters em src/generator/integrations, com fontes e lockfiles de apoio em integrations/. Status ready indica a base gerável; planning-only descreve a saída sem efeitos de plan. Novas stacks precisam de adapter próprio para anunciar integrações. O núcleo continua independente de devtool.
+As capacidades das sete bases têm adapters em src/generator/integrations, com fontes e lockfiles de apoio em integrations/. Status ready indica a base gerável; planning-only descreve a saída sem efeitos de plan. Novas stacks precisam de adapter próprio para anunciar integrações. O núcleo continua independente de devtool.
+
+O renderer também compõe docs/ARQUITETURA.md e passa os fontes por generator/format.rs antes da publicação: dprint JS/TS embutido; rustfmt para Rust. Python usa fontes/fragmentos previamente formatados e uma matriz validada com Ruff. Os adapters selecionam lockfiles exatos por combinação; o script de validação descobre as stacks prontas no catálogo e escolhe checks pelo gerenciador.

@@ -12,7 +12,7 @@ A etapa seguinte inicializa Git local, oferece instalação de dependências e, 
 
 ## Stacks e módulos
 
-Bases geráveis: vanilla HTML/CSS/JS, React/Vite/TS, Next/TS, Express/TS, Nest/TS e Rust/Axum. Fontes JS/TS usam import/export. `--module-system esm` é padrão; Express também aceita `commonjs`, com `package.json` e saída TypeScript coerentes. As outras bases Node rejeitam CommonJS nesta revisão.
+Bases geráveis: vanilla HTML/CSS/JS, React/Vite/TS, Next/TS, Express/TS, Nest/TS, Rust/Axum e Python/FastAPI. Fontes JS/TS usam import/export. `--module-system esm` é padrão; Express também aceita `commonjs`, com `package.json` e saída TypeScript coerentes. As outras bases Node rejeitam CommonJS nesta revisão.
 
 As dependências Node usam versões exatas e package-lock distribuído com o template; a instalação usa `npm ci`. Rust inclui Cargo.lock e usa `cargo fetch --locked`. Frameworks e CLIs são dependências do projeto, não instalações globais.
 

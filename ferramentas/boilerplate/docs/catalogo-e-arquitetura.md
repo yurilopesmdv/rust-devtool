@@ -1,6 +1,6 @@
 # Catálogo e arquitetura
 
-[Índice](README.md). As seis bases já têm fontes geráveis. As integrações de dados/cache/monitoria/segredos também estão implementadas nos três backends. Compose/Kubernetes são arquivos gerados; consulte validação.md para a diferença entre validação das aplicações/configurações e execução de containers/cluster.
+[Índice](README.md). As sete bases já têm fontes geráveis. As integrações de dados/cache/monitoria/segredos também estão implementadas nos quatro backends. Compose/Kubernetes são arquivos gerados; consulte validação.md para a diferença entre validação das aplicações/configurações e execução de containers/cluster.
 
 ## Catálogo inicial
 
@@ -12,8 +12,9 @@
 | `express-ts` | Backend | Node.js + TypeScript + Express | camadas organizadas por funcionalidade |
 | `nest-ts` | Backend | Node.js + TypeScript + NestJS | módulos do Nest com controllers, providers e adapters |
 | `rust-axum` | Backend | Rust + Axum + Tokio | módulos Rust com camadas explícitas e composição no bootstrap |
+| `python-fastapi` | Backend | Python 3.13 + FastAPI + uv | routers, schemas Pydantic, services e repositories por funcionalidade |
 
-O catálogo inicial combina qualquer frontend com qualquer backend para fullstack. Os testes devem verificar as nove combinações em sua configuração mínima. Combinações com extensões entram no catálogo somente quando possuem validação própria.
+O catálogo inicial combina qualquer frontend com qualquer backend para fullstack. Os testes devem verificar as doze combinações em sua configuração mínima. Combinações com extensões entram no catálogo somente quando possuem validação própria.
 
 ## Estrutura backend padronizada
 
@@ -34,18 +35,17 @@ src/
       dto/                  # validação de entrada e saída
       repositories/         # somente com persistência selecionada
   infrastructure/
-    database/               # somente com banco
+    database/               # conexão/readiness e preparação, sem consultas de domínio
     cache/                  # somente com Redis
     observability/          # somente com monitoria
-    secrets/                # somente com Vault
   tests/
 ```
 
 Controllers chamam services; services usam contratos de repository quando há persistência; adapters implementam a comunicação com serviços externos. Configuração de pool/conexão não fica em controller. Não criar repositories vazios, conexões de banco ou entidades persistentes quando o banco for `none`.
 
-Um backend mínimo oferece endpoint demonstrativo e health checks, erro HTTP consistente, logs estruturados, configuração validada e shutdown controlado. A seleção de persistência acrescenta uma fatia demonstrativa de leitura/escrita com teste de integração; sem persistência, o exemplo permanece stateless, sem fingir um banco em memória.
+Um backend mínimo oferece endpoint demonstrativo e health checks, erros HTTP, mensagens operacionais sem credenciais, configuração validada e shutdown controlado. A seleção de persistência acrescenta uma fatia demonstrativa de leitura/escrita com teste de integração; sem persistência, o exemplo permanece stateless, sem fingir um banco em memória.
 
-Nest mantém seus `modules`, controllers e providers, injetando implementações de repositório por tokens. Rust usa `mod`, structs/traits e estado compartilhado do Axum; não reproduz decorators ou herança do ecossistema Node. O guia gerado explica a localização equivalente de cada camada.
+Nest usa um Module por funcionalidade, providers e injeção do repository no service; InfrastructureModule gerencia recursos via lifecycle. Rust usa arquivos distintos de controller, service e repository, compartilhando um pool por processo. Python usa APIRouter, Pydantic, Depends e lifespan; os clientes pertencem à aplicação e os repositories são construídos a partir deles. O guia gerado docs/ARQUITETURA.md explica cada camada. Configuração de variáveis e conexão não implementam operações de domínio.
 
 ## Frontend
 
@@ -53,7 +53,7 @@ React/Vite terá `src/app`, `src/pages`, `src/components`, `src/features`, `src/
 
 Next usa `src/app` para rotas/layouts, preservando as convenções do App Router, com `src/components`, `src/features` e `src/services` para organização. Não criar `pages/` apenas para imitar o React/Vite. Código exclusivo de servidor e variáveis privadas não entram em módulos de cliente.
 
-Vanilla usa `index.html`, `assets/` e `src/scripts`, `src/styles`, `src/views`. Oferece um servidor HTTP local documentado, sem adicionar React/Vite. Não exigir Node para abrir um projeto estático simples; instalação de dependências pode ser não aplicável. Não prometer um roteador de SPA que não foi selecionado.
+Vanilla usa `index.html`, `assets/` e `src/scripts`, `src/styles`, `src/views`. Oferece um servidor HTTP local documentado, sem adicionar React/Vite. Node não é necessário para servir o HTML; npm instala ESLint/dprint localmente para qualidade de código. O servidor documentado continua sendo python3 -m http.server. Não prometer um roteador de SPA que não foi selecionado.
 
 ## Integrações de dados
 
@@ -66,7 +66,7 @@ Vanilla usa `index.html`, `assets/` e `src/scripts`, `src/styles`, `src/views`. 
 
 Sugestão de apresentação: PostgreSQL para dados relacionais e transações; MongoDB quando a aplicação pede documentos e seu modelo de consulta foi considerado. Nenhum deve ser obrigatório. Redis é cache, não a fonte primária da informação; o boilerplate deve definir quando uma falha de cache permite seguir consultando o serviço principal.
 
-Os adapters atuais usam pg/SQLx para PostgreSQL, os drivers oficiais MongoDB e node-redis/redis-rs para cache; as versões ficam nos fontes e lockfiles distribuídos. Não selecionar ORM/ODM apenas para preencher uma pasta. MongoDB não deve receber um fluxo de migrações SQL fictício.
+Os adapters atuais usam pg/SQLx/psycopg para PostgreSQL, drivers oficiais MongoDB e clientes Redis por stack; as versões ficam nos fontes e lockfiles distribuídos. Não selecionar ORM/ODM apenas para preencher uma pasta. MongoDB não deve receber um fluxo de migrações SQL fictício.
 
 ## Fullstack e repositórios separados
 

@@ -27,7 +27,7 @@ A proposta para este repositório preserva essa experiência com núcleo Rust e 
 
 ## O que é decisão deste projeto
 
-O catálogo de seis stacks, a arquitetura em camadas, os layouts de repositório, o formato da receita, as opções `none`, o contrato de arquivos de segredos, os limites de execução e a sequência de implementação são decisões/propostas locais. As fontes explicam os mecanismos utilizados; não validam automaticamente os templates ou suas combinações. Essa validação faz parte das próximas entregas.
+O catálogo de sete stacks, a arquitetura em camadas, os layouts de repositório, o formato da receita, as opções `none`, o contrato de arquivos de segredos, os limites de execução e a sequência de implementação são decisões/propostas locais. As fontes explicam os mecanismos utilizados; não validam automaticamente os templates ou suas combinações. Consulte validacao.md para a evidência e os limites da validação local.
 
 ## Criação, Node e GitHub
 
@@ -44,3 +44,13 @@ O catálogo de seis stacks, a arquitetura em camadas, os layouts de repositório
 - [Prometheus client Node](https://github.com/prometheus/client_js): registry e métricas HTTP/processo.
 - [SQLx](https://docs.rs/sqlx/0.8.6/sqlx/), [MongoDB Rust](https://docs.rs/mongodb/3.9.1/mongodb/) e [redis-rs](https://docs.rs/redis/0.32.7/redis/): adapters Rust.
 - [Entrypoint Vault 1.20.2](https://raw.githubusercontent.com/hashicorp/vault/v1.20.2/.release/docker/docker-entrypoint.sh): comportamento de usuário, volume /vault/file e configuração do container.
+
+## Python e qualidade
+
+- [FastAPI: aplicações em módulos](https://fastapi.tiangolo.com/tutorial/bigger-applications/).
+- [FastAPI: lifespan](https://fastapi.tiangolo.com/advanced/events/).
+- [FastAPI: testes](https://fastapi.tiangolo.com/tutorial/testing/).
+- [uv: lock e sincronização](https://docs.astral.sh/uv/concepts/projects/sync/).
+- [Ruff](https://docs.astral.sh/ruff/).
+- [dprint TypeScript](https://dprint.dev/plugins/typescript/).
+- [typescript-eslint](https://typescript-eslint.io/getting-started/).
