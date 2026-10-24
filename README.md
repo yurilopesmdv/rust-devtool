@@ -40,10 +40,11 @@ cargo run -p rust-boilerplate -- plan minha-api --type backend --backend express
 ## Verificar o workspace
 
 ```sh
-cargo fmt --all -- --check
-cargo check --workspace --all-targets
-cargo test --workspace --all-targets
-cargo clippy --workspace --all-targets -- -D warnings
+sh scripts/check-workspace.sh
+# Com dependências já em cache:
+sh scripts/check-workspace.sh --offline
 ```
+
+O comando verifica formatação, testes de todos os pacotes/targets, doctests e Clippy. Preserva Cargo.lock e para na primeira falha. Consulte [como contribuir](CONTRIBUTING.md), a [revisão do processo](docs/desenvolvimento/revisao.md) e as [microtasks priorizadas](docs/desenvolvimento/README.md).
 
 Os pacotes compartilham `Cargo.lock` e `target/`. Use `-p guia-rust` para o material didático, `-p rust-devtool` para os utilitários ou `-p rust-boilerplate` para o planejador. O membro padrão é a CLI existente, preservando `cargo run -- help` na raiz. Veja a [referência de workspaces do Cargo](https://doc.rust-lang.org/cargo/reference/workspaces.html).
