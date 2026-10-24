@@ -137,3 +137,102 @@ jobs:
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/rust-boilerplate-generated-target
         run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks rust-axum
+
+  generated-persistence:
+    name: Persistence (${{ matrix.stack }}, ${{ matrix.modules }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stack: express-ts
+            modules: esm
+          - stack: express-ts
+            modules: commonjs
+          - stack: nest-ts
+            modules: esm
+          - stack: python-fastapi
+            modules: native
+          - stack: rust-axum
+            modules: native
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_TERM_COLOR: always
+      POSTGRES_TEST_URL: postgresql://app:test-only@127.0.0.1:5432/app
+      MONGODB_TEST_URL: mongodb://app:test-only@127.0.0.1:27017/app?authSource=admin
+      REDIS_TEST_URL: redis://127.0.0.1:6379
+      UV_PYTHON: '3.13'
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      mongodb:
+        image: mongo:8.0.13
+        env:
+          MONGO_INITDB_ROOT_USERNAME: app
+          MONGO_INITDB_ROOT_PASSWORD: test-only
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --username app --password test-only --authenticationDatabase admin --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7.4.5-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+
+      - name: Prepare Node
+        if: matrix.stack == 'express-ts' || matrix.stack == 'nest-ts'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Prepare uv
+        if: matrix.stack == 'python-fastapi'
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.13.5'
+          enable-cache: false
+
+      - name: Prepare Python
+        if: matrix.stack == 'python-fastapi'
+        run: uv python install 3.13 --no-bin
+
+      - name: Validate persistence and readiness
+        env:
+          TEMPLATE_ID: ${{ matrix.stack }}
+          MODULE_SYSTEM: ${{ matrix.modules }}
+          CARGO_TARGET_DIR: ${{ runner.temp }}/rust-boilerplate-persistence-target
+        run: |
+          if [ "$MODULE_SYSTEM" = commonjs ]; then
+            python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --commonjs-only
+          else
+            python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --stacks "$TEMPLATE_ID"
+          fi

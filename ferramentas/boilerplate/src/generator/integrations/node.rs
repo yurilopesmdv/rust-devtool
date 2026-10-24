@@ -368,6 +368,12 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         "false"
     };
     let tests = "tests/api.test.mjs";
+    if db != Database::None {
+        files.get_mut(&prefix.join(tests)).unwrap().insert_str(
+            0,
+            "import * as database from '../dist/infrastructure/database/client.js';\n",
+        );
+    }
     let source = files.get_mut(&prefix.join(tests)).unwrap();
     *source = source.replacen("async () =>", &format!("{{skip:{skip}}}, async () =>"), 1);
     if cache && db == Database::None && !vault {
@@ -393,6 +399,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     let mut checks = String::new();
     if db != Database::None {
         checks.push_str(r#"
+assert.equal((await fetch(`${__BASE__}/ready`)).status,200);
 const previous=await (await fetch(`${__BASE__}/api/v1/example`)).json();
 const message=`updated-${Date.now()}`;
 assert.equal((await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})})).status,200);
@@ -404,6 +411,9 @@ await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':
     if metrics {
         checks.push_str(r#"const metrics=await (await fetch(`${__BASE__}/metrics`)).text();assert.match(metrics,/http_requests_total/);assert.match(metrics,/http_request_duration_seconds/);
 "#);
+    }
+    if db != Database::None {
+        checks.push_str("await database.close();\nassert.equal((await fetch(`${__BASE__}/ready`)).status,503);\nassert.equal((await fetch(`${__BASE__}/health`)).status,200);\n");
     }
     let source = files.get_mut(&prefix.join(tests)).unwrap();
     let marker = if express {

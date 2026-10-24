@@ -295,6 +295,12 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
         *test = test.replace("def test_health_and_example():", "def test_health_and_example(monkeypatch):\n    monkeypatch.setenv(\"REDIS_URL\", os.environ.get(\"REDIS_URL\", \"redis://127.0.0.1:9\"))");
     }
     if db != Database::None {
+        insert(
+            files,
+            prefix,
+            "tests/test_readiness.py",
+            include_str!("../../../integrations/python/test-readiness.py"),
+        );
         files.get_mut(&prefix.join("tests/test_api.py")).unwrap().push_str("\n\n@pytest.mark.skipif(\n    not (os.environ.get(\"DATABASE_URL\") or os.environ.get(\"DATABASE_URL_FILE\")),\n    reason=\"Requer banco de teste preparado\",\n)\ndef test_persistence():\n    with TestClient(create_app()) as client:\n        previous = client.get(\"/api/v1/example\").json()\n        try:\n            assert client.post(\"/api/v1/example\", json={\"message\": \"persistido\"}).status_code == 200\n            assert client.get(\"/api/v1/example\").json() == {\"message\": \"persistido\"}\n            assert client.post(\"/api/v1/example\", json={\"message\": 123}).status_code == 422\n        finally:\n            client.post(\"/api/v1/example\", json=previous)\n");
     }
     if metrics {

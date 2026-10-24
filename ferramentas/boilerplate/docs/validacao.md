@@ -60,3 +60,5 @@ ESLint/dprint e typecheck/build/test passaram nas bases Node, inclusive Next/Vit
 O gerador não depende de CLIs globais de JavaScript/Python para gerar arquivos. Gerar Rust requer rustfmt. A suíte agora verifica formatação sem alterá-la. Para complementar lint estático com verificação de dados reais, use --with-services e serviços descartáveis dedicados; não use bancos pessoais ou de produção.
 
 O middleware Express também foi verificado em ESM/CommonJS com requisições reais de JSON inválido (400) e payload grande (413), sem depender de banco para esses casos.
+
+O workflow Quality agora separa o workspace, bases mínimas npm/Python/Rust e persistência com serviços descartáveis. A validação local da T006 também verifica readiness após fechar a conexão (503) e liveness preservada (200) nas dez combinações de backend/banco, contando Express/CommonJS. A primeira execução dos jobs/imagens no GitHub ainda precisa ser observada; veja docs/desenvolvimento/tasks/T006.md na raiz do repositório.

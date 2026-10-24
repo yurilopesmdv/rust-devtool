@@ -18,3 +18,6 @@ ignore = ["B008"] # FastAPI declares dependencies with Depends in function signa
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

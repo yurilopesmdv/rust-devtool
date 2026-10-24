@@ -13,7 +13,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T003](tasks/T003.md) | P0 | implementada; run remoto pendente | CI das bases mínimas JavaScript/TypeScript | T002 |
 | [T004](tasks/T004.md) | P0 | implementada; run remoto pendente | CI da base mínima Python | T002 |
 | [T005](tasks/T005.md) | P0 | implementada; run remoto pendente | CI da aplicação Rust gerada | T002 |
-| [T006](tasks/T006.md) | P1 | pendente | CI de persistência com serviços descartáveis | T003, T004, T005 |
+| [T006](tasks/T006.md) | P1 | implementada; run remoto pendente | CI de persistência com serviços descartáveis | T003, T004, T005 |
 | [T007](tasks/T007.md) | P1 | pendente | Checagem dos links locais de documentação | T001 |
 | [T008](tasks/T008.md) | P1 | pendente | Contratos exatos para pontos de extensão | T001 |
 | [T009](tasks/T009.md) | P1 | pendente | Extrair lifecycle Node para fragmentos legíveis | T008 |
