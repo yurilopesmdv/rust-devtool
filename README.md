@@ -14,12 +14,18 @@ Instale a toolchain stable de Rust com as [instruções oficiais](https://www.ru
 ```sh
 rustc --version
 cargo --version
-cargo run -p guia-rust --example emprestimo_original
+cargo run -p guia-rust --example fundamentos
 cargo run -p rust-devtool -- help
 ```
 
 Execute os comandos deste repositório a partir da raiz, salvo indicação diferente.
 O compilador produz os binários em `target/`; o antigo executável avulso `ownership`, se presente localmente, não faz parte dos fontes.
+
+## Percurso de aprendizado
+
+Siga o [roteiro completo](guia/README.md): fundamentos → controle de fluxo → ownership → structs e enums → erros → coleções → traits e lifetimes → módulos e testes → arquivos e CLI → concorrência.
+
+Cada pasta tem explicação em português, código executável, comparação com TypeScript e exercícios. Ao final, use o [projeto de consolidação](guia/projeto-final.md) para planejar sua primeira ferramenta. Consulte também a [ponte TypeScript → Rust](guia/referencias/typescript-para-rust.md).
 
 ## Verificar o workspace
 
