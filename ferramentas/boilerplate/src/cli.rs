@@ -28,6 +28,15 @@ pub enum Command {
     Doctor {
         #[arg(long)]
         template: String,
+        /// Versão Node a verificar; usa a receita quando presente, senão 24.
+        #[arg(long)]
+        node_version: Option<String>,
+        /// Verificar Git instalado.
+        #[arg(long)]
+        git: bool,
+        /// Verificar gh instalado e autenticação em github.com.
+        #[arg(long)]
+        github: bool,
         /// Também verifica ferramentas de infraestrutura selecionadas na receita.
         #[arg(long)]
         config: Option<PathBuf>,
@@ -94,7 +103,7 @@ pub struct PlanArgs {
     pub image_web: Option<String>,
     #[arg(long)]
     pub image_api: Option<String>,
-    /// O planejador sempre é não interativo; flag aceita para scripts.
+    /// Desativa perguntas (plan já é não interativo).
     #[arg(long)]
     pub non_interactive: bool,
     #[arg(long)]

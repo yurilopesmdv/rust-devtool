@@ -7,9 +7,9 @@
     "node": "{{NODE_ENGINE}}"
   },
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "node --env-file-if-exists=.env --import tsx --watch src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js",
+    "start": "node --env-file-if-exists=.env dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs"
   },

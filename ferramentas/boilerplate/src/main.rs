@@ -104,6 +104,9 @@ fn run() -> Result<(), Error> {
         Command::Doctor {
             template,
             config,
+            node_version,
+            git,
+            github,
             json: as_json,
         } => {
             let t = catalog.get(&template)?;
@@ -118,7 +121,22 @@ fn run() -> Result<(), Error> {
             } else {
                 None
             };
-            let checks = doctor::probe(&doctor::requirements(t, plan.as_ref()));
+            let version = node_version
+                .as_deref()
+                .or_else(|| {
+                    plan.as_ref()
+                        .map(|p| p.configuration.toolchain.node_version.as_str())
+                })
+                .unwrap_or("24");
+            if !generator::runtime::valid_node_version(version) {
+                return Err(Error::input("Versão Node inválida"));
+            }
+            let mut requirements = doctor::requirements(t, plan.as_ref());
+            requirements.extend(doctor::vcs_requirements(git, github));
+            let mut checks = doctor::probe(&requirements, version);
+            if github {
+                checks.push(doctor::auth_check());
+            }
             if as_json {
                 json(&checks)?;
             } else {
@@ -126,12 +144,12 @@ fn run() -> Result<(), Error> {
                     "Requisitos para instalação/execução em WSL/Linux; planejar não exige essas ferramentas."
                 );
                 println!(
-                    "A versão é informativa; a compatibilidade com frameworks ainda não foi certificada."
+                    "Node é verificado contra a versão solicitada, usando nvm existente quando disponível. Outros requisitos verificam presença/versão."
                 );
                 for check in &checks {
                     println!(
                         "{} {}: {}",
-                        if check.available {
+                        if check.available && check.compatible != Some(false) {
                             "OK"
                         } else {
                             "AUSENTE/FALHOU"
@@ -146,7 +164,10 @@ fn run() -> Result<(), Error> {
                     );
                 }
             }
-            if checks.iter().any(|check| !check.available) {
+            if checks
+                .iter()
+                .any(|check| !check.available || check.compatible == Some(false))
+            {
                 return Err(Error::operation(
                     "Há ferramentas ausentes ou que não responderam ao comando de versão",
                 ));

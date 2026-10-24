@@ -156,7 +156,34 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
         )?;
     }
     if uses_node && args.plan.module_system.is_none() {
-        println!("Módulos: ESM (import/export). Express também aceita --module-system commonjs.");
+        let commonjs_supported = [&r.frontend.template, &r.backend.template]
+            .into_iter()
+            .flatten()
+            .all(|id| {
+                catalog.get(id).is_ok_and(|t| {
+                    t.module_systems.is_empty() || t.module_systems.iter().any(|s| s == "commonjs")
+                })
+            });
+        if commonjs_supported && args.plan.config.is_none() {
+            loop {
+                match line("Sistema de módulos (esm/commonjs)", Some("esm"))?.as_str() {
+                    "esm" => {
+                        r.toolchain.module_system = ModuleSystem::Esm;
+                        break;
+                    }
+                    "commonjs" => {
+                        r.toolchain.module_system = ModuleSystem::Commonjs;
+                        break;
+                    }
+                    _ => println!("Escolha esm ou commonjs"),
+                }
+            }
+        } else {
+            println!(
+                "Sistema de módulos: {:?} (fontes com import/export)",
+                r.toolchain.module_system
+            );
+        }
     }
     if r.infrastructure.containers.is_none() {
         r.infrastructure.containers = Some(

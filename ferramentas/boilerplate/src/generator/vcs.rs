@@ -67,10 +67,14 @@ pub fn validate(args: &NewArgs, split: bool) -> Result<(), Error> {
 pub fn init(roots: &[PathBuf]) -> Result<(), Error> {
     for root in roots {
         checked(
-            Command::new("git")
-                .args(["init", "--initial-branch=main"])
-                .current_dir(root),
+            Command::new("git").arg("init").current_dir(root),
             "Inicializar Git local",
+        )?;
+        checked(
+            Command::new("git")
+                .args(["symbolic-ref", "HEAD", "refs/heads/main"])
+                .current_dir(root),
+            "Definir branch main",
         )?;
     }
     Ok(())

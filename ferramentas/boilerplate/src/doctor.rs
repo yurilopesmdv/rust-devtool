@@ -4,13 +4,14 @@ use crate::{
     planner::Plan,
 };
 use serde::Serialize;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 #[derive(Debug, Serialize)]
 pub struct Check {
     pub command: String,
     pub purpose: String,
     pub available: bool,
+    pub compatible: Option<bool>,
     pub version: String,
 }
 
@@ -49,12 +50,14 @@ pub fn requirements(template: &Template, plan: Option<&Plan>) -> Vec<Requirement
     requirements
 }
 
-pub fn probe(requirements: &[Requirement]) -> Vec<Check> {
+pub fn probe(requirements: &[Requirement], node_version: &str) -> Vec<Check> {
+    let runtime = crate::generator::runtime::Runtime::find_node(node_version).unwrap_or_default();
     requirements
         .iter()
         .map(|requirement| {
             // Catálogo é embutido e versionado, não carregado da receita do usuário.
-            let output = Command::new(&requirement.command)
+            let output = runtime
+                .command(&requirement.command)
                 .args(&requirement.args)
                 .stdin(Stdio::null())
                 .output();
@@ -78,9 +81,49 @@ pub fn probe(requirements: &[Requirement]) -> Vec<Check> {
                     .collect::<Vec<_>>()
                     .join(" "),
                 purpose: requirement.purpose.clone(),
+                compatible: (requirement.command == "node").then(|| {
+                    available && crate::generator::runtime::matches_node(node_version, &version)
+                }),
                 available,
                 version,
             }
         })
         .collect()
+}
+
+pub fn vcs_requirements(git: bool, github: bool) -> Vec<Requirement> {
+    let mut requirements = Vec::new();
+    if git || github {
+        requirements.push(tool("git", &["--version"], "Inicializar Git local"));
+    }
+    if github {
+        requirements.push(tool(
+            "gh",
+            &["--version"],
+            "Criar repositório remoto quando autorizado",
+        ));
+    }
+    requirements
+}
+
+pub fn auth_check() -> Check {
+    let available = std::process::Command::new("gh")
+        .args(["auth", "status", "--hostname", "github.com"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success());
+    Check {
+        command: "gh auth status --hostname github.com".into(),
+        purpose: "Verificar autenticação sem exibir tokens".into(),
+        available,
+        compatible: None,
+        version: if available {
+            "autenticado"
+        } else {
+            "indisponível; execute gh auth login"
+        }
+        .into(),
+    }
 }

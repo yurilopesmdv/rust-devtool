@@ -387,3 +387,97 @@ fn push_without_github_is_rejected_before_publication() {
     assert_eq!(output.status.code(), Some(2));
     assert!(!temp.0.join("api").exists());
 }
+
+#[test]
+fn git_is_initialized_on_main_without_a_commit_or_remote_by_default() {
+    if !runtime::exists("git") {
+        return;
+    }
+    let temp = Temp::new();
+    let output = cli(&temp)
+        .args([
+            "new",
+            "api",
+            "--type",
+            "backend",
+            "--backend",
+            "express-ts",
+            "--install",
+            "no",
+            "--github",
+            "no",
+            "--non-interactive",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let root = temp.0.join("api");
+    let branch = Command::new("git")
+        .args(["symbolic-ref", "HEAD"])
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&branch.stdout).trim(),
+        "refs/heads/main"
+    );
+    let remote = Command::new("git")
+        .arg("remote")
+        .current_dir(root)
+        .output()
+        .unwrap();
+    assert!(remote.stdout.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn github_auth_failure_preserves_sources_and_never_creates_a_remote() {
+    use std::os::unix::fs::PermissionsExt;
+    let temp = Temp::new();
+    let bin = temp.0.join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let log = temp.0.join("commands");
+    for (name, code) in [
+        ("git", "exit 0"),
+        ("gh", "if [ \"$1\" = auth ]; then exit 1; fi\nexit 0"),
+    ] {
+        let file = bin.join(name);
+        std::fs::write(
+            &file,
+            format!("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$COMMAND_LOG\"\n{code}\n"),
+        )
+        .unwrap();
+        std::fs::set_permissions(file, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let output = cli(&temp)
+        .env("PATH", &bin)
+        .env("COMMAND_LOG", &log)
+        .args([
+            "new",
+            "api",
+            "--type",
+            "backend",
+            "--backend",
+            "express-ts",
+            "--install",
+            "no",
+            "--github",
+            "yes",
+            "--push",
+            "no",
+            "--non-interactive",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(temp.0.join("api/package.json").exists());
+    assert!(
+        !std::fs::read_to_string(log)
+            .unwrap()
+            .contains("repo create")
+    );
+}
