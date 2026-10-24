@@ -2,14 +2,14 @@
 
 [Revisão do processo](revisao.md) · [Fluxo de contribuição](../../CONTRIBUTING.md)
 
-As tasks descrevem entregas pequenas verificáveis. P0 estabiliza o processo, P1 reduz fragilidade/manutenção manual, P2 amplia contratos e testes, P3 expande o produto. Status pendente significa proposta priorizada, não funcionalidade entregue. Concluir uma task exige implementação e evidência; os demais itens continuam neste backlog.
+As tasks descrevem entregas pequenas verificáveis. P0 estabiliza o processo, P1 reduz fragilidade/manutenção manual, P2 amplia contratos e testes, P3 expande o produto. Status pendente significa proposta priorizada, não funcionalidade entregue. Implementada com run remoto pendente significa que código e validação local estão prontos, mas falta a execução no GitHub. Concluir uma task exige implementação e evidência; os demais itens continuam neste backlog.
 
 A prioridade inicial é validar de forma repetível as sete stacks existentes. Go é a próxima candidata; Java e mobile ficam em preparação. Nenhuma nova linguagem deve ser marcada ready apenas por ter uma pasta ou metadado.
 
 | Task | Prioridade | Status | Entrega | Depende de |
 | --- | --- | --- | --- | --- |
 | [T001](tasks/T001.md) | P0 | concluída | Comando único de validação do workspace | — |
-| [T002](tasks/T002.md) | P0 | pendente | CI do núcleo usando o mesmo comando | T001 |
+| [T002](tasks/T002.md) | P0 | implementada; run remoto pendente | CI do núcleo usando o mesmo comando | T001 |
 | [T003](tasks/T003.md) | P0 | pendente | CI das bases mínimas JavaScript/TypeScript | T002 |
 | [T004](tasks/T004.md) | P0 | pendente | CI da base mínima Python | T002 |
 | [T005](tasks/T005.md) | P0 | pendente | CI da aplicação Rust gerada | T002 |

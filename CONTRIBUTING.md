@@ -40,6 +40,12 @@ sh scripts/tests/check-workspace.sh
 
 Ajuda/argumentos inválidos não executam Cargo. A primeira falha encerra a execução com seu código de saída. Se faltar rustfmt/Clippy, prepare os componentes e execute novamente. Não rode cargo fmt ou atualize locks silenciosamente dentro de um check para torná-lo verde.
 
+## Integração contínua
+
+O [workflow Quality](.github/workflows/quality.yml) executa o wrapper e o mesmo comando em PRs, push em main e execução manual. Usa runner Linux, Rust stable, token de leitura e checkout por SHA, sem credenciais persistidas. A primeira execução no GitHub ainda precisa ser observada após o envio dos arquivos; validação local do YAML não equivale a um run remoto.
+
+O workflow cobre o workspace. CI das aplicações geradas e persistência estão nas tasks T003–T006; esses jobs ainda não estão implementados. Para exigir um check antes de merge, configure as regras de branch/required checks no GitHub depois do primeiro run. Esse efeito não vem apenas do arquivo YAML.
+
 ## Checks da aplicação gerada
 
 Os testes do workspace verificam a geração; também é necessário validar a aplicação resultante quando mudar templates, adapters ou dependências. Veja [validação dos boilerplates](ferramentas/boilerplate/docs/validacao.md) e [lint/formatação por linguagem](ferramentas/boilerplate/docs/qualidade.md).
