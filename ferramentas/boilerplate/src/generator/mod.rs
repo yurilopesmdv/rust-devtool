@@ -1,3 +1,5 @@
+pub mod architecture;
+pub mod format;
 pub mod integrations;
 pub mod render;
 pub mod runtime;

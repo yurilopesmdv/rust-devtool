@@ -194,6 +194,11 @@ pub fn install(
     let Some((program, args)) = template.install.split_first() else {
         return Ok(());
     };
+    if program == "uv" && !exists("uv") {
+        return Err(Error::operation(
+            "uv não está instalado. Instale no WSL seguindo https://docs.astral.sh/uv/getting-started/installation/ e execute uv sync --locked na aplicação; os arquivos foram preservados",
+        ));
+    }
     let mut args = args.to_vec();
     // A fresh Rust project has no lockfile yet. Subsequent invocations can use --locked.
     if program == "cargo" && !app.destination.join("Cargo.lock").exists() {

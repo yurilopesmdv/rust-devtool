@@ -121,11 +121,11 @@ fn compose_selection_controls_dockerignore_and_dockerfile_for_every_base() {
     }
 }
 #[test]
-fn all_nine_pairs_generate_in_monorepo_and_split_without_absolute_recipe_paths() {
+fn all_pairs_generate_in_monorepo_and_split_without_absolute_recipe_paths() {
     let temp = Temp::new();
     let c = Catalog::embedded().unwrap();
     for front in ["vanilla-js", "react-vite-ts", "next-ts"] {
-        for back in ["express-ts", "nest-ts", "rust-axum"] {
+        for back in ["express-ts", "nest-ts", "rust-axum", "python-fastapi"] {
             for layout in [Layout::Monorepo, Layout::Split] {
                 let mut r = recipe(back, ProjectType::Fullstack);
                 r.frontend.template = Some(front.into());

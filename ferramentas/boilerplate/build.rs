@@ -40,6 +40,18 @@ fn main() {
         source.push_str(&format!("({id:?},include_str!({path:?})),\n"));
     }
     source.push_str("];\n");
+    println!("cargo:rerun-if-changed=integrations/python-locks");
+    source.push_str("pub const PYTHON_LOCKS: &[(&str, &str)] = &[\n");
+    let mut locks: Vec<_> = fs::read_dir(root.join("integrations/python-locks"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    locks.sort();
+    for path in locks {
+        let id = path.file_stem().unwrap().to_str().unwrap();
+        source.push_str(&format!("({id:?},include_str!({path:?})),\n"));
+    }
+    source.push_str("];\n");
     let output = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("catalog.rs");
     fs::write(output, source).expect("gerar índice do catálogo");
 }
@@ -48,6 +60,22 @@ fn collect(root: &std::path::Path, files: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(root).expect("templates devem existir") {
         let path = entry.unwrap().path();
         if path.is_dir() {
+            if matches!(
+                path.file_name().and_then(|s| s.to_str()),
+                Some(
+                    "node_modules"
+                        | ".venv"
+                        | "__pycache__"
+                        | ".ruff_cache"
+                        | ".pytest_cache"
+                        | ".git"
+                        | "target"
+                        | "dist"
+                        | ".next"
+                )
+            ) {
+                continue;
+            }
             collect(&path, files);
         } else {
             files.push(path);

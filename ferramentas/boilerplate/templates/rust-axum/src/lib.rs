@@ -7,7 +7,7 @@ pub fn app() -> Router {
         std::env::var("FRONTEND_ORIGIN").unwrap_or_else(|_| "http://localhost:{{WEB_PORT}}".into());
     Router::new()
         .route("/health", get(|| async { Json(json!({"status":"ok"})) }))
-        .route("/api/v1/example", get(modules::example::controller))
+        .route("/api/v1/example", get(modules::example::controller::controller))
         .layer(
             CorsLayer::new().allow_origin(
                 origin

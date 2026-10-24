@@ -1,0 +1,27 @@
+{
+  "name": "{{PROJECT_NAME}}",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "{{NODE_ENGINE}}"
+  },
+  "scripts": {
+    "dev": "python3 -m http.server 5173 --bind 127.0.0.1",
+    "typecheck": "node --check src/scripts/api.js && node --check src/scripts/main.js",
+    "test": "npm run typecheck",
+    "build": "npm run typecheck",
+    "lint": "eslint .",
+    "format": "dprint fmt",
+    "format:check": "dprint check",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "dprint": "0.64.3",
+    "@dprint/typescript": "0.96.1",
+    "eslint": "10.13.0",
+    "@eslint/js": "10.0.1",
+    "typescript-eslint": "8.72.0",
+    "globals": "17.13.0"
+  }
+}

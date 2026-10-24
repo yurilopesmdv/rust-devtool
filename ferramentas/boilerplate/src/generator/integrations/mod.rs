@@ -1,6 +1,7 @@
 pub mod docs;
 pub mod infra;
 pub mod node;
+pub mod python;
 pub mod rust;
 use crate::{Error, catalog::Template, config::*};
 use std::{
@@ -44,6 +45,7 @@ pub fn backend(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Re
     match t.integration_adapter.as_deref() {
         Some("node-express" | "node-nest") => node::apply(r, t, files, prefix),
         Some("rust-axum") => rust::apply(r, files, prefix),
+        Some("python-fastapi") => python::apply(r, files, prefix),
         _ => Err(Error::input(format!(
             "{} não possui adapter de integrações",
             t.id

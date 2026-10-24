@@ -8,7 +8,7 @@ integration_adapter = "rust-axum"
 architecture = "layered"
 status = "ready"
 package_manager = "cargo"
-paths = ["src/config/", "src/http/", "src/modules/example/", "tests/", "docs/"]
+paths = ["src/modules/example/", "tests/", "docs/"]
 capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
 module_systems = []
 install = ["cargo", "fetch", "--locked"]
@@ -23,10 +23,15 @@ command = "cargo"
 args = ["--version"]
 purpose = "Instalar e executar a aplicação; não é necessário para planejar"
 
+[[requirements]]
+command = "rustfmt"
+args = ["--version"]
+purpose = "Formatar os fontes compostos antes de salvar; rustup component add rustfmt"
+
 [conditional_paths]
 compose = ["Dockerfile", ".dockerignore"]
-postgres = ["src/infrastructure/database/", "src/modules/example/repositories/"]
-mongodb = ["src/infrastructure/database/", "src/modules/example/repositories/"]
-redis = ["src/infrastructure/cache/"]
-vault = ["src/infrastructure/secrets/"]
-prometheus-grafana = ["src/infrastructure/observability/"]
+postgres = ["src/infrastructure/database.rs", "src/modules/example/repositories/"]
+mongodb = ["src/infrastructure/database.rs", "src/modules/example/repositories/"]
+redis = ["src/infrastructure/cache.rs"]
+vault = ["src/infrastructure/config.rs"]
+prometheus-grafana = ["src/infrastructure/metrics.rs"]

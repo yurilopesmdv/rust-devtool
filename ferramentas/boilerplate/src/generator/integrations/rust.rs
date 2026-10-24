@@ -71,7 +71,7 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     };
     insert(files, prefix, "src/infrastructure/config.rs", config);
     if db != Database::None {
-        modules.push_str("pub mod database;\n");
+        modules.push_str("pub mod database;\npub mod schema;\n");
         start.push_str("database::initialize().await?;\n");
         stop.push_str("database::close().await;\n");
         ready.push_str("database::ready().await?;\n");
@@ -85,6 +85,16 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
                 MONGODB
             },
         );
+        insert(
+            files,
+            prefix,
+            "src/infrastructure/schema.rs",
+            if db == Database::Postgres {
+                include_str!("../../../integrations/postgres-schema.rs")
+            } else {
+                include_str!("../../../integrations/mongodb-schema.rs")
+            },
+        );
         let name = r.project.name.as_deref().unwrap().replace('-', "_");
         let crate_name = if r.project.kind == Some(ProjectType::Fullstack) {
             format!("{name}_api")
@@ -96,14 +106,18 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
             prefix,
             "examples/prepare.rs",
             format!(
-                "use {crate_name}::infrastructure::{{database,Failure}};\n#[tokio::main]async fn main()->Result<(),Failure>{{database::initialize().await?;let result=database::prepare().await;database::close().await;result}}\n"
+                "use {crate_name}::infrastructure::{{database,schema,Failure}};\n#[tokio::main]async fn main()->Result<(),Failure>{{database::initialize().await?;let result=schema::prepare().await;database::close().await;result}}\n"
             ),
         );
         insert(
             files,
             prefix,
             "src/modules/example/repositories/mod.rs",
-            "pub use crate::infrastructure::database::{read,write};\n",
+            if db == Database::Postgres {
+                include_str!("../../../integrations/postgres-repository.rs")
+            } else {
+                include_str!("../../../integrations/mongodb-repository.rs")
+            },
         );
         if db == Database::Postgres {
             insert(
@@ -150,7 +164,46 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
         "\"example\"",
         &format!("\"{}:example\"", cargo["package"]["name"].as_str().unwrap()),
     );
-    insert(files, prefix, "src/modules/example/mod.rs", example);
+    let service_start = example.find("async fn service()").unwrap();
+    let controller_start = example.find("pub async fn controller()").unwrap();
+    let mut service_source = example[service_start..controller_start]
+        .replace("async fn service()", "pub async fn get()");
+    if db != Database::None {
+        service_source.insert_str(0, "use super::repositories;\n");
+    }
+    let mut controllers =
+        example[controller_start..].replace("service().await", "super::service::get().await");
+    if db != Database::None {
+        let write_start = controllers.find("pub async fn write_controller").unwrap();
+        controllers.truncate(write_start);
+        controllers.push_str("pub async fn write_controller(axum::Json(body):axum::Json<serde_json::Value>)->Result<axum::Json<serde_json::Value>,(axum::http::StatusCode,&'static str)>{let message=body.get(\"message\").and_then(|v|v.as_str()).filter(|s|!s.is_empty()&&s.chars().count()<=200).ok_or((axum::http::StatusCode::BAD_REQUEST,\"message precisa conter 1 a 200 caracteres\"))?;super::service::write(message).await.map(axum::Json).map_err(|_|(axum::http::StatusCode::INTERNAL_SERVER_ERROR,\"Falha de persistência\"))}\n");
+        service_source.push_str(&format!("pub async fn write(message:&str)->Result<serde_json::Value,crate::infrastructure::Failure>{{repositories::write(message).await?;{}Ok(serde_json::json!({{\"message\":message}}))}}\n",if cache{format!("crate::infrastructure::cache::remove(\"{}:example\").await;",cargo["package"]["name"].as_str().unwrap())}else{String::new()}));
+    }
+    insert(
+        files,
+        prefix,
+        "src/modules/example/service.rs",
+        service_source,
+    );
+    insert(
+        files,
+        prefix,
+        "src/modules/example/controller.rs",
+        controllers,
+    );
+    insert(
+        files,
+        prefix,
+        "src/modules/example/mod.rs",
+        format!(
+            "pub mod controller;\npub mod service;\n{}",
+            if db != Database::None {
+                "pub mod repositories;\n"
+            } else {
+                ""
+            }
+        ),
+    );
     let origin = r.infrastructure.frontend_origin.clone().unwrap_or_else(|| {
         let port = files[&prefix.join("src/lib.rs")]
             .split("http://localhost:")
@@ -173,12 +226,12 @@ pub fn app()->Router{{
  let origin=std::env::var("FRONTEND_ORIGIN").unwrap_or_else(|_|"{origin}".into());
  let router=Router::new().route("/health",get(||async{{Json(json!({{"status":"ok"}}))}}))
  .route("/ready",get(||async{{infrastructure::ready().await.map(|_|Json(json!({{"status":"ok"}}))).map_err(|_|StatusCode::SERVICE_UNAVAILABLE)}}))
- .route("/api/v1/example",get(modules::example::controller){}){};
+ .route("/api/v1/example",get(modules::example::controller::controller){}){};
  router.layer(CorsLayer::new().allow_origin(origin.parse::<HeaderValue>().expect("FRONTEND_ORIGIN inválida")).allow_methods([Method::GET,Method::POST,Method::OPTIONS]).allow_headers([CONTENT_TYPE]))
 }}
 "#,
             if db != Database::None {
-                ".post(modules::example::write_controller)"
+                ".post(modules::example::controller::write_controller)"
             } else {
                 ""
             },
@@ -226,7 +279,7 @@ pub fn app()->Router{{
             prefix,
             "tests/api.rs",
             format!(
-                "use {crate_name}::{{app,infrastructure}};\nuse axum::{{body::Body,http::{{Request,StatusCode}}}};use tower::ServiceExt;\n#[tokio::test]async fn liveness_does_not_require_a_database(){{let response=app().oneshot(Request::builder().uri(\"/health\").body(Body::empty()).unwrap()).await.unwrap();assert_eq!(response.status(),StatusCode::OK);}}\n#[tokio::test]#[ignore=\"Requer DATABASE_URL e banco preparado; rode cargo test -- --ignored\"]async fn persistence(){{infrastructure::initialize().await.unwrap();infrastructure::database::prepare().await.unwrap();infrastructure::database::write(\"persistido\").await.unwrap();assert_eq!(infrastructure::database::read().await.unwrap(),\"persistido\");infrastructure::close().await;}}\n"
+                "use {crate_name}::{{app,infrastructure}};\nuse axum::{{body::Body,http::{{Request,StatusCode}}}};use tower::ServiceExt;\n#[tokio::test]async fn liveness_does_not_require_a_database(){{let response=app().oneshot(Request::builder().uri(\"/health\").body(Body::empty()).unwrap()).await.unwrap();assert_eq!(response.status(),StatusCode::OK);}}\n#[tokio::test]#[ignore=\"Requer DATABASE_URL e banco preparado; rode cargo test -- --ignored\"]async fn persistence(){{infrastructure::initialize().await.unwrap();infrastructure::schema::prepare().await.unwrap();{crate_name}::modules::example::repositories::write(\"persistido\").await.unwrap();assert_eq!({crate_name}::modules::example::repositories::read().await.unwrap(),\"persistido\");infrastructure::close().await;}}\n"
             ),
         );
     }
@@ -258,23 +311,17 @@ pub fn app()->Router{{
 const POSTGRES: &str = r#"use super::{Failure,config};
 use sqlx::{PgPool,postgres::PgPoolOptions};use tokio::sync::OnceCell;
 static POOL:OnceCell<PgPool>=OnceCell::const_new();
-fn pool()->Result<&'static PgPool,Failure>{POOL.get().ok_or_else(||"Banco não inicializado".into())}
+pub fn pool()->Result<&'static PgPool,Failure>{POOL.get().ok_or_else(||"Banco não inicializado".into())}
 pub async fn initialize()->Result<(),Failure>{POOL.get_or_try_init(||async{PgPoolOptions::new().max_connections(10).acquire_timeout(std::time::Duration::from_secs(5)).connect(&config::read("DATABASE_URL")?).await.map_err(|e|->Failure{e.into()})}).await?;Ok(())}
 pub async fn ready()->Result<(),Failure>{sqlx::query("SELECT 1").execute(pool()?).await?;Ok(())}
 pub async fn close(){if let Some(pool)=POOL.get(){pool.close().await;}}
-pub async fn prepare()->Result<(),Failure>{sqlx::query("CREATE TABLE IF NOT EXISTS examples(key TEXT PRIMARY KEY,message TEXT NOT NULL)").execute(pool()?).await?;sqlx::query("INSERT INTO examples(key,message) VALUES('default','API funcionando') ON CONFLICT DO NOTHING").execute(pool()?).await?;Ok(())}
-pub async fn read()->Result<String,Failure>{sqlx::query_scalar::<_,String>("SELECT message FROM examples WHERE key=$1").bind("default").fetch_optional(pool()?).await?.ok_or_else(||"Execute prepare".into())}
-pub async fn write(message:&str)->Result<(),Failure>{sqlx::query("INSERT INTO examples(key,message) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET message=EXCLUDED.message").bind("default").bind(message).execute(pool()?).await?;Ok(())}
 "#;
 const MONGODB: &str = r#"use super::{Failure,config};use mongodb::{Client,bson::doc};use tokio::sync::OnceCell;
 static CLIENT:OnceCell<Client>=OnceCell::const_new();
-fn database()->Result<mongodb::Database,Failure>{CLIENT.get().ok_or("Banco não inicializado")?.default_database().ok_or_else(||"DATABASE_URL precisa incluir o nome do banco".into())}
+pub fn database()->Result<mongodb::Database,Failure>{CLIENT.get().ok_or("Banco não inicializado")?.default_database().ok_or_else(||"DATABASE_URL precisa incluir o nome do banco".into())}
 pub async fn initialize()->Result<(),Failure>{CLIENT.get_or_try_init(||async{Client::with_uri_str(config::read("DATABASE_URL")?).await.map_err(|e|->Failure{e.into()})}).await?;ready().await}
 pub async fn ready()->Result<(),Failure>{database()?.run_command(doc!{"ping":1}).await?;Ok(())}
 pub async fn close(){if let Some(client)=CLIENT.get(){client.clone().shutdown().await;}}
-pub async fn prepare()->Result<(),Failure>{let collection=database()?.collection::<mongodb::bson::Document>("examples");collection.create_index(mongodb::IndexModel::builder().keys(doc!{"message":1}).build()).await?;collection.update_one(doc!{"_id":"default"},doc!{"$setOnInsert":{"message":"API funcionando"}}).upsert(true).await?;Ok(())}
-pub async fn read()->Result<String,Failure>{let row=database()?.collection::<mongodb::bson::Document>("examples").find_one(doc!{"_id":"default"}).await?.ok_or("Execute prepare")?;Ok(row.get_str("message")?.to_string())}
-pub async fn write(message:&str)->Result<(),Failure>{database()?.collection::<mongodb::bson::Document>("examples").update_one(doc!{"_id":"default"},doc!{"$set":{"message":message}}).upsert(true).await?;Ok(())}
 "#;
 const CACHE: &str = r#"use super::{Failure,config};use redis::{AsyncCommands,aio::ConnectionManager};use tokio::{sync::OnceCell,time::{timeout,Duration}};
 static CACHE:OnceCell<Option<ConnectionManager>>=OnceCell::const_new();

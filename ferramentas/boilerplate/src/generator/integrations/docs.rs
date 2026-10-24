@@ -26,7 +26,7 @@ pub fn write(
     let mut text = String::from(
         "# Operação do ambiente gerado\n\nEste documento acompanha apenas os módulos selecionados. As configurações são bases de desenvolvimento: ajuste TLS, domínio, backup, capacidade e políticas para seu ambiente. O gerador não inicia serviços nem opera clusters.\n\n",
     );
-    text.push_str("## Dependências do ambiente\n\nA geração offline requer apenas o binário boilerplate. Para instalar/executar a aplicação, use o runtime e os comandos do README da aplicação. Não há instalação global de frameworks.\n\n");
+    text.push_str("## Dependências do ambiente\n\nA geração offline de JS/TS/Python requer o binário boilerplate; fontes Rust também requerem rustfmt no PATH. Para instalar/executar a aplicação, use o runtime e os comandos do README da aplicação. Não há instalação global de frameworks.\n\n");
     if r.infrastructure.containers == Some(Containers::Compose) {
         text.push_str("Docker/Compose: siga a [instalação oficial no Ubuntu](https://docs.docker.com/engine/install/ubuntu/) compatível com sua distribuição WSL; valide `docker --version`, `docker compose version` e `docker info` antes de iniciar containers.\n\n");
     }
@@ -49,7 +49,9 @@ pub fn write(
             .template
             .as_deref()
             .is_some_and(|s| s != "rust-axum");
-        if node {
+        if r.backend.template.as_deref() == Some("python-fastapi") {
+            text.push_str("Na pasta da API: `uv run --locked --env-file .env python -m app.infrastructure.prepare`. Em Compose: `docker compose --env-file infra/.env run --rm api python -m app.infrastructure.prepare`. Python usa `uv run --locked --env-file .env pytest` para persistência real; sem URLs de teste os testes de integração são pulados. FastAPI retorna 422 para payload inválido.\n\n");
+        } else if node {
             text.push_str("Na pasta da API: `npm run build && npm run db:prepare`. Em Compose: `docker compose --env-file infra/.env run --rm api npm run db:prepare` (imagem já compilada).\n\n");
         } else {
             text.push_str("Na pasta da API: `cargo run --example prepare`. Em Compose: `docker compose --env-file infra/.env run --rm api /app/prepare`.\n\n");

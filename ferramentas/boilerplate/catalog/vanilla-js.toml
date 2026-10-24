@@ -6,12 +6,20 @@ port = 5173
 container_port = 8080
 architecture = ""
 status = "ready"
-package_manager = "none"
+package_manager = "npm"
 paths = ["index.html", "assets/", "src/scripts/", "src/styles/", "src/views/", "docs/"]
 capabilities = ["compose", "kubernetes", "prometheus-grafana-container"]
 module_systems = []
-install = []
-requirements = []
+install = ["npm", "ci"]
+[[requirements]]
+command = "node"
+args = ["--version"]
+purpose = "Executar lint e formatação locais; o site funciona sem runtime Node"
+
+[[requirements]]
+command = "npm"
+args = ["--version"]
+purpose = "Instalar somente as ferramentas de desenvolvimento"
 
 [conditional_paths]
 compose = ["Dockerfile", ".dockerignore"]

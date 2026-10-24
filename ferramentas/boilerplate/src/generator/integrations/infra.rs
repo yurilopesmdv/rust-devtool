@@ -193,7 +193,7 @@ pub fn apply(plan: &Plan, catalog: &Catalog, root: &Path, files: &mut Files) -> 
             files,
             has_api,
             apps.iter()
-                .any(|a| catalog.get(&a.template).unwrap().package_manager == "npm"),
+                .any(|a| catalog.get(&a.template).unwrap().id == "next-ts"),
         )?;
     }
     if vault {
@@ -256,10 +256,7 @@ pub fn apply(plan: &Plan, catalog: &Catalog, root: &Path, files: &mut Files) -> 
                 if !depends.is_empty() {
                     service["depends_on"] = Value::Object(depends);
                 }
-            } else if !has_api
-                && monitored
-                && (t.package_manager == "none" || t.id == "react-vite-ts")
-            {
+            } else if !has_api && monitored && (t.id == "vanilla-js" || t.id == "react-vite-ts") {
                 static_config(files, prefix);
                 service["volumes"] = json!([format!(
                     "./{}:/etc/nginx/conf.d/default.conf:ro",
@@ -614,6 +611,8 @@ fn kubernetes(
             c.as_object_mut().unwrap().remove("readinessProbe");
             c["command"] = if t.package_manager == "npm" {
                 json!(["node", "dist/infrastructure/database/prepare.js"])
+            } else if t.package_manager == "uv" {
+                json!(["/app/.venv/bin/python", "-m", "app.infrastructure.prepare"])
             } else {
                 json!(["/app/prepare"])
             };

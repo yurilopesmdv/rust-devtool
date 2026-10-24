@@ -297,3 +297,134 @@ fn vault_container_contract_uses_owned_storage_and_bypasses_entrypoint_for_appro
     );
     assert!(output[&PathBuf::from("infra/vault/server.hcl")].contains("/vault/file"));
 }
+
+#[test]
+fn persistence_queries_belong_to_repositories_and_nest_uses_feature_modules() {
+    for stack in ["express-ts", "nest-ts", "rust-axum", "python-fastapi"] {
+        for db in [Database::Postgres, Database::Mongodb] {
+            let mut r = recipe(stack);
+            r.backend.database = Some(db);
+            r.backend.database_location = Some(Location::Local);
+            let generated = files(r);
+            let (connection, repository) = if stack == "rust-axum" {
+                (
+                    "src/infrastructure/database.rs",
+                    "src/modules/example/repositories/mod.rs",
+                )
+            } else if stack == "python-fastapi" {
+                (
+                    "app/infrastructure/database.py",
+                    "app/modules/example/repository.py",
+                )
+            } else {
+                (
+                    "src/infrastructure/database/client.ts",
+                    "src/modules/example/repositories/example.repository.ts",
+                )
+            };
+            let client = &generated[&PathBuf::from(connection)];
+            let repository = &generated[&PathBuf::from(repository)];
+            for business_query in [
+                "INSERT INTO",
+                "SELECT message",
+                "update_one",
+                "updateOne",
+                "findOne",
+                "find_one",
+            ] {
+                assert!(
+                    !client.contains(business_query),
+                    "{stack}: consulta de domínio no cliente"
+                );
+            }
+            assert!(repository.contains(if db == Database::Postgres {
+                "SELECT message"
+            } else if stack == "python-fastapi" || stack == "rust-axum" {
+                "find_one"
+            } else {
+                "findOne"
+            }));
+            assert!(!repository.contains("export { read, write }"));
+            if stack == "nest-ts" {
+                assert!(
+                    generated[&PathBuf::from("src/modules/example/example.module.ts")]
+                        .contains("ExampleRepository")
+                );
+                assert!(
+                    generated[&PathBuf::from("src/modules/example/example.service.ts")]
+                        .contains("@Inject(ExampleRepository)")
+                );
+                assert!(
+                    generated[&PathBuf::from("src/infrastructure/infrastructure.module.ts")]
+                        .contains("onModuleInit")
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn python_feature_matrix_has_matching_locks_and_omits_disabled_modules() {
+    for db in [Database::None, Database::Postgres, Database::Mongodb] {
+        for cache in [false, true] {
+            for metrics in [false, true] {
+                for vault in [false, true] {
+                    let mut r = recipe("python-fastapi");
+                    r.backend.database = Some(db);
+                    if db != Database::None {
+                        r.backend.database_location = Some(Location::Local);
+                    }
+                    r.backend.cache = Some(if cache { Cache::Redis } else { Cache::None });
+                    if cache {
+                        r.backend.cache_location = Some(Location::Local);
+                    }
+                    r.infrastructure.monitoring = Some(if metrics {
+                        Monitoring::PrometheusGrafana
+                    } else {
+                        Monitoring::None
+                    });
+                    r.infrastructure.secrets =
+                        Some(if vault { Secrets::Vault } else { Secrets::Env });
+                    if vault {
+                        r.infrastructure.vault_location = Some(Location::Local);
+                    }
+                    let generated = files(r);
+                    let manifest: toml::Value =
+                        toml::from_str(&generated[&PathBuf::from("pyproject.toml")]).unwrap();
+                    let lock: toml::Value =
+                        toml::from_str(&generated[&PathBuf::from("uv.lock")]).unwrap();
+                    assert_eq!(lock["version"].as_integer(), Some(1));
+                    assert_eq!(
+                        manifest["project"]["name"].as_str(),
+                        Some("integration-sample")
+                    );
+                    assert_eq!(
+                        generated.contains_key(&PathBuf::from("app/modules/example/repository.py")),
+                        db != Database::None
+                    );
+                    assert_eq!(
+                        generated.contains_key(&PathBuf::from("app/infrastructure/cache.py")),
+                        cache
+                    );
+                    assert_eq!(
+                        generated.contains_key(&PathBuf::from("app/infrastructure/metrics.py")),
+                        metrics
+                    );
+                    let dependencies = manifest["project"]["dependencies"].to_string();
+                    assert_eq!(dependencies.contains("redis=="), cache);
+                    assert_eq!(dependencies.contains("prometheus-client=="), metrics);
+                    assert_eq!(
+                        generated[&PathBuf::from("app/config.py")].contains("_FILE"),
+                        vault
+                    );
+                    if db != Database::None {
+                        assert!(
+                            generated[&PathBuf::from("infra/kubernetes/jobs/prepare.yaml")]
+                                .contains("app.infrastructure.prepare")
+                        );
+                    }
+                }
+            }
+        }
+    }
+}

@@ -18,7 +18,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     let mut stop = String::new();
     let mut ready = String::new();
     if vault && db == Database::None && !cache {
-        imports.push_str("import {readConfig} from './config.js';\n");
+        imports.push_str("import {readConfig} from '../config/env.js';\n");
         start.push_str("readConfig('APP_SECRET');\n");
     }
     let config = if vault {
@@ -26,7 +26,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     } else {
         "export function readConfig(key:string, required=true):string|undefined { const value=process.env[key]; if(required&&!value) throw new Error(`${key} ausente`); return value; }\n"
     };
-    insert(files, prefix, "src/infrastructure/config.ts", config);
+    insert(files, prefix, "src/config/env.ts", config);
     if db != Database::None {
         let driver = if db == Database::Postgres {
             "pg"
@@ -55,13 +55,27 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             files,
             prefix,
             "src/modules/example/repositories/example.repository.ts",
-            "export { read, write } from '../../../infrastructure/database/client.js';\n",
+            if db == Database::Postgres {
+                include_str!("../../../integrations/node/postgres-repository.ts")
+            } else {
+                include_str!("../../../integrations/node/mongodb-repository.ts")
+            },
+        );
+        insert(
+            files,
+            prefix,
+            "src/infrastructure/database/schema.ts",
+            if db == Database::Postgres {
+                include_str!("../../../integrations/node/postgres-schema.ts")
+            } else {
+                include_str!("../../../integrations/node/mongodb-schema.ts")
+            },
         );
         insert(
             files,
             prefix,
             "src/infrastructure/database/prepare.ts",
-            "import { initialize, prepare, close } from './client.js';\nasync function main(){try{await initialize();await prepare();}finally{await close();}}\nvoid main().catch(()=>{console.error('Falha ao preparar banco; confira configuração e conectividade');process.exitCode=1;});\n",
+            "import { initialize, close } from './client.js';\nimport { prepare } from './schema.js';\nasync function main(){try{await initialize();await prepare();}finally{await close();}}\nvoid main().catch(()=>{console.error('Falha ao preparar banco; confira configuração e conectividade');process.exitCode=1;});\n",
         );
         package["scripts"]["db:prepare"] =
             json!("node --env-file-if-exists=.env dist/infrastructure/database/prepare.js");
@@ -110,7 +124,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     }
     get.push_str("return result;");
     let write = if cache {
-        "await cache.remove('example');return repository.write(message);"
+        "const result=await repository.write(message);await cache.remove('example');return result;"
     } else {
         "return repository.write(message);"
     };
@@ -200,14 +214,30 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 "import {readiness} from './infrastructure/lifecycle.js';\n",
             );
     } else {
+        if db != Database::None {
+            service = service.replace(
+                "import * as repository from '../repositories/example.repository.js';",
+                "import { ExampleRepository } from '../repositories/example.repository.js';",
+            );
+        }
+        let get = get.replace("repository.", "this.repository.");
+        let write = write.replace("repository.", "this.repository.");
+        let constructor = if db != Database::None {
+            "constructor(@Inject(ExampleRepository) private readonly repository:ExampleRepository){}"
+        } else {
+            ""
+        };
         service = format!(
-            "import {{Injectable}} from '@nestjs/common';\n{service}\n@Injectable() export class ExampleService{{async get(){{{get}}}{}}}\n",
+            "import {{Injectable, Inject}} from '@nestjs/common';\n{service}\n@Injectable() export class ExampleService{{{constructor}async get(){{{get}}}{}}}\n",
             if db != Database::None {
                 format!("async write(message:string){{{write}}}")
             } else {
                 String::new()
             }
         );
+        if db == Database::None {
+            service = service.replace("Injectable, Inject", "Injectable");
+        }
         insert(
             files,
             prefix,
@@ -217,6 +247,29 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 .replace("'../../../infrastructure/", "'../../infrastructure/"),
         );
         if db != Database::None {
+            let repository_path =
+                prefix.join("src/modules/example/repositories/example.repository.ts");
+            let repository = files.get_mut(&repository_path).unwrap();
+            let methods = repository.find("export async function read()").unwrap();
+            *repository = format!(
+                "import {{Injectable}} from '@nestjs/common';\n{}\n@Injectable() export class ExampleRepository {{ {} }}\n",
+                &repository[..methods],
+                repository[methods..].replace("export async function ", "async ")
+            );
+            files
+                .get_mut(&prefix.join("src/modules/example/example.module.ts"))
+                .unwrap()
+                .insert_str(
+                    0,
+                    "import { ExampleRepository } from './repositories/example.repository.js';\n",
+                );
+            replace(
+                files,
+                prefix,
+                "src/modules/example/example.module.ts",
+                "providers: [ExampleService]",
+                "providers: [ExampleService, ExampleRepository]",
+            )?;
             replace(
                 files,
                 prefix,
@@ -228,23 +281,16 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 files,
                 prefix,
                 "src/modules/example/example.controller.ts",
-                " @Get() get() { return this.service.get(); }",
-                " @Get() get() { return this.service.get(); }\n @Post() @HttpCode(200) write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||message.length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
+                "  @Get()\n  get() {\n    return this.service.get();\n  }",
+                "  @Get()\n  get() {\n    return this.service.get();\n  }\n @Post() @HttpCode(200) write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||message.length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
             )?;
         }
-        replace(
-            files,
-            prefix,
-            "src/app.ts",
-            "const app = await NestFactory.create",
-            "await initialize(); const app = await NestFactory.create",
-        )?;
         files
             .get_mut(&prefix.join("src/app.ts"))
             .unwrap()
             .insert_str(
                 0,
-                "import {initialize,readiness} from './infrastructure/lifecycle.js';\n",
+                "import {readiness} from './infrastructure/lifecycle.js';\n",
             );
         replace(
             files,
@@ -254,14 +300,34 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             "app.use('/ready',async(_req:unknown,res:{status:(code:number)=>{json:(value:unknown)=>unknown},json:(value:unknown)=>unknown})=>{try{res.json(await readiness());}catch{res.status(503).json({status:'unavailable'});}});\napp.enableShutdownHooks();",
         )?;
     }
+    if !express && db != Database::None {
+        insert(
+            files,
+            prefix,
+            "tests/service.test.mjs",
+            "import 'reflect-metadata';\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport {ExampleService} from '../dist/modules/example/example.service.js';\ntest('service coordena repository injetado sem criar conexão',async()=>{const calls=[];const repository={read:async()=>{calls.push('read');return {message:'origem'};},write:async(message)=>{calls.push('write');return {message};}};const service=new ExampleService(repository);assert.deepEqual(await service.get(),{message:'origem'});assert.deepEqual(await service.write('novo'),{message:'novo'});assert.deepEqual(calls,['read','write']);});\n",
+        );
+    }
     if !express {
-        files.get_mut(&prefix.join("src/app.module.ts")).unwrap().insert_str(0,"import {close} from './infrastructure/lifecycle.js';\nclass IntegrationLifecycle {async onApplicationShutdown(){await close();}}\n");
+        insert(
+            files,
+            prefix,
+            "src/infrastructure/infrastructure.module.ts",
+            "import {Module,Injectable,type OnModuleInit,type OnApplicationShutdown} from '@nestjs/common';\nimport {initialize,close} from './lifecycle.js';\n@Injectable() class IntegrationLifecycle implements OnModuleInit,OnApplicationShutdown {async onModuleInit(){await initialize();} async onApplicationShutdown(){await close();}}\n@Module({providers:[IntegrationLifecycle]}) export class InfrastructureModule {}\n",
+        );
+        files
+            .get_mut(&prefix.join("src/app.module.ts"))
+            .unwrap()
+            .insert_str(
+                0,
+                "import {InfrastructureModule} from './infrastructure/infrastructure.module.js';\n",
+            );
         replace(
             files,
             prefix,
             "src/app.module.ts",
-            "providers: [ExampleService]",
-            "providers: [ExampleService,IntegrationLifecycle]",
+            "imports: [ExampleModule]",
+            "imports: [InfrastructureModule, ExampleModule]",
         )?;
     }
     if metrics {
@@ -351,7 +417,7 @@ await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':
             files,
             prefix,
             "tests/secrets.test.mjs",
-            "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport {mkdtempSync,writeFileSync,rmSync} from 'node:fs';\nimport {tmpdir} from 'node:os';\nimport {join} from 'node:path';\nimport {readConfig} from '../dist/infrastructure/config.js';\ntest('segredo por arquivo e detecção de ambiguidade',()=>{const dir=mkdtempSync(join(tmpdir(),'secret-'));try{writeFileSync(join(dir,'value'),'teste\\n');process.env.TEST_VALUE_FILE=join(dir,'value');assert.equal(readConfig('TEST_VALUE'),'teste');process.env.TEST_VALUE='direto';assert.throws(()=>readConfig('TEST_VALUE'));}finally{delete process.env.TEST_VALUE;delete process.env.TEST_VALUE_FILE;rmSync(dir,{recursive:true});}});\n",
+            "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport {mkdtempSync,writeFileSync,rmSync} from 'node:fs';\nimport {tmpdir} from 'node:os';\nimport {join} from 'node:path';\nimport {readConfig} from '../dist/config/env.js';\ntest('segredo por arquivo e detecção de ambiguidade',()=>{const dir=mkdtempSync(join(tmpdir(),'secret-'));try{writeFileSync(join(dir,'value'),'teste\\n');process.env.TEST_VALUE_FILE=join(dir,'value');assert.equal(readConfig('TEST_VALUE'),'teste');process.env.TEST_VALUE='direto';assert.throws(()=>readConfig('TEST_VALUE'));}finally{delete process.env.TEST_VALUE;delete process.env.TEST_VALUE_FILE;rmSync(dir,{recursive:true});}});\n",
         );
     }
     // Optional dependencies are taken from a tested superset lock, then pruned by dependency reachability.

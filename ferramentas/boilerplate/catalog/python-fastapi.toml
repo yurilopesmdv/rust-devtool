@@ -1,0 +1,26 @@
+id = "python-fastapi"
+role = "backend"
+language = "Python"
+framework = "FastAPI"
+port = 3000
+container_port = 3000
+integration_adapter = "python-fastapi"
+architecture = "layered"
+status = "ready"
+package_manager = "uv"
+paths = ["app/modules/example/", "tests/", "docs/"]
+capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+install = ["uv", "sync", "--locked"]
+
+[[requirements]]
+command = "uv"
+args = ["--version"]
+purpose = "Instalar Python 3.13 e dependências na .venv do projeto"
+
+[conditional_paths]
+compose = ["Dockerfile", ".dockerignore"]
+postgres = ["app/infrastructure/database.py", "app/modules/example/repository.py"]
+mongodb = ["app/infrastructure/database.py", "app/modules/example/repository.py"]
+redis = ["app/infrastructure/cache.py"]
+vault = ["app/config.py"]
+prometheus-grafana = ["app/infrastructure/metrics.py"]

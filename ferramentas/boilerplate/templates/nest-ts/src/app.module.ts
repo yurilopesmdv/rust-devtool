@@ -1,7 +1,12 @@
-import { Module, Controller, Get } from '@nestjs/common';
-import { ExampleController } from './modules/example/example.controller.js';
-import { ExampleService } from './modules/example/example.service.js';
+import { Controller, Get, Module } from '@nestjs/common';
+import { ExampleModule } from './modules/example/example.module.js';
 @Controller('health')
-class HealthController { @Get() get() { return { status: 'ok' }; } }
-@Module({ controllers: [HealthController, ExampleController], providers: [ExampleService] })
+class HealthController {
+  @Get()
+  get() {
+    return { status: 'ok' };
+  }
+}
+
+@Module({ imports: [ExampleModule], controllers: [HealthController], providers: [] })
 export class AppModule {}

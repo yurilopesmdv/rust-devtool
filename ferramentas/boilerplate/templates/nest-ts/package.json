@@ -11,7 +11,11 @@
     "build": "tsc",
     "start": "node --env-file-if-exists=.env dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "lint": "eslint .",
+    "format": "dprint fmt",
+    "format:check": "dprint check",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@nestjs/common": "12.2.0",
@@ -21,8 +25,14 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
-    "typescript": "7.0.2",
+    "typescript": "6.0.3",
     "@types/node": "26.6.5",
-    "tsx": "4.23.15"
+    "tsx": "4.23.15",
+    "dprint": "0.64.3",
+    "@dprint/typescript": "0.96.1",
+    "eslint": "10.13.0",
+    "@eslint/js": "10.0.1",
+    "typescript-eslint": "8.72.0",
+    "globals": "17.13.0"
   }
 }

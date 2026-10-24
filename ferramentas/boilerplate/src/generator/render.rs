@@ -7,7 +7,7 @@ use crate::{
 };
 use std::{collections::BTreeMap, path::PathBuf};
 
-const GITIGNORE: &str = "node_modules/\ndist/\nbuild/\n.next/\ntarget/\ncoverage/\n*.log\n*.tsbuildinfo\n.env\n.env.*\n!.env.example\n.DS_Store\n.vscode/\n.idea/\n";
+const GITIGNORE: &str = "node_modules/\ndist/\nbuild/\n.next/\ntarget/\ncoverage/\n*.log\n*.tsbuildinfo\n.venv/\n__pycache__/\n*.py[cod]\n.pytest_cache/\n.ruff_cache/\n.env\n.env.*\n!.env.example\n.DS_Store\n.vscode/\n.idea/\n";
 
 fn put(files: &mut BTreeMap<PathBuf, String>, path: PathBuf, content: String) -> Result<(), Error> {
     if !super::writer::safe_path(&path) {
@@ -126,6 +126,13 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
         }
         super::integrations::backend(r, t, files, prefix)?;
         super::integrations::frontend(r, t, files, prefix)?;
+        if t.role == ProjectType::Backend {
+            put(
+                files,
+                prefix.join("docs/ARQUITETURA.md"),
+                super::architecture::guide(t),
+            )?;
+        }
         // Preserve the declared architecture even where a folder has no source yet.
         for directory in t.paths.iter().filter(|path| path.ends_with('/')) {
             let directory = prefix.join(directory);
@@ -169,7 +176,7 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
                 &mut files,
                 PathBuf::from("README.md"),
                 format!(
-                    "# {name}\n\nFrontend em [apps/web](apps/web/README.md) e API em [apps/api](apps/api/README.md).\n\nInstale e execute cada aplicação em seu diretório; nenhum serviço foi iniciado automaticamente. A API usa http://localhost:3000 e o frontend http://localhost:{web_port}. CORS e cliente HTTP já usam essas origens locais.\n\n{}",
+                    "# {name}\n\nFrontend em [apps/web](apps/web/README.md) e API em [apps/api](apps/api/README.md).\n\nInstale e execute cada aplicação em seu diretório; nenhum serviço foi iniciado automaticamente. A API usa http://localhost:3000 e o frontend http://localhost:{web_port} por padrão. Confira as URLs efetivas nos READMEs das aplicações e em boilerplate.toml.\n\n{}",
                     if compose {
                         "Para containers, execute `docker compose config`, depois `docker compose up --build` nesta raiz. Para parar sem apagar dados: `docker compose down`.\n"
                     } else {
@@ -236,6 +243,7 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             toml::to_string_pretty(&recipe).map_err(|e| Error::operation(e.to_string()))?,
         )?;
         super::integrations::infra::apply(plan, catalog, &root, &mut files)?;
+        super::format::apply(&mut files)?;
         projects.push(ProjectFiles {
             destination: root,
             files,
@@ -254,8 +262,13 @@ fn node_engine(version: &str) -> String {
 
 fn agent_rules(name: &str, manager: &str) -> String {
     let validation = match manager {
-        "npm" => "npm run typecheck && npm test && npm run build",
-        "cargo" => "cargo fmt && cargo test && cargo clippy -- -D warnings",
+        "npm" => "npm run check",
+        "uv" => {
+            "uv run --locked ruff check . && uv run --locked ruff format --check . && uv run --locked pytest"
+        }
+        "cargo" => {
+            "cargo fmt --check && cargo test --locked && cargo clippy --all-targets -- -D warnings"
+        }
         _ => "Servir por HTTP, verificar carregamento e a integração com a API no navegador",
     };
     format!(
@@ -266,7 +279,10 @@ fn agent_rules(name: &str, manager: &str) -> String {
 fn app_readme(name: &str, template: &str, manager: &str, web_port: u16, compose: bool) -> String {
     let commands = match manager {
         "npm" => {
-            "```sh\n# Se necessário, carregue o nvm: . \"$HOME/.nvm/nvm.sh\"\nnvm install\nnvm use\nnpm ci\nnpm run typecheck\nnpm test\nnpm run build\nnpm run dev\n```\n\nPara ambiente com lockfile, prefira `npm ci`. O runtime local já é verificado pela engine e .nvmrc. As dependências ficam em node_modules, sem instalar framework/TypeScript globalmente.\n"
+            "```sh\n# Se necessário, carregue o nvm: . \"$HOME/.nvm/nvm.sh\"\nnvm install\nnvm use\nnpm ci\nnpm run check\nnpm run dev\n```\n\nPara ambiente com lockfile, prefira `npm ci`. O runtime local já é verificado pela engine e .nvmrc. As dependências ficam em node_modules, sem instalar framework/TypeScript globalmente.\n"
+        }
+        "uv" => {
+            "```sh\nuv sync --locked\ncp .env.example .env\nuv run --locked ruff check .\nuv run --locked ruff format --check .\nuv run --locked pytest\nuv run --locked --env-file .env uvicorn app.main:create_app --factory --host 0.0.0.0 --port 3000 --reload\n```\n\nRequer uv (veja https://docs.astral.sh/uv/getting-started/installation/). uv verifica/obtém Python 3.13 e cria .venv local, sem instalar bibliotecas no Python do sistema. Use uv run --locked ruff format . para formatar. /docs oferece OpenAPI/Swagger.\n"
         }
         "cargo" => {
             "```sh\ncargo fetch\ncargo fmt\ncargo test\ncargo run\n```\n\nVersione Cargo.lock após a instalação.\n"
@@ -276,7 +292,7 @@ fn app_readme(name: &str, template: &str, manager: &str, web_port: u16, compose:
         }
     };
     format!(
-        "# {name}\n\nBase `{template}` criada pelo boilerplate para WSL/Linux. Execute os comandos nesta pasta.\n\n## Instalar, validar e executar\n\n{commands}\n## Configuração e integração\n\nAPI: http://localhost:3000, `/health` e `/api/v1/example`. Frontend: http://localhost:{web_port}. O cliente usa URL acessível ao navegador, e não DNS de container. `VITE_API_URL` e `NEXT_PUBLIC_API_URL` são públicas e aplicadas no build; nunca coloque segredos nelas.\n\nQuando .env.example existir, copie para .env antes de personalizar. Não versione .env. Os scripts dev/start dos backends Node carregam .env quando presente; Vite/Next usam seus carregadores próprios. O backend Rust lê o ambiente do processo: exporte as variáveis no shell.\n\nEstrutura: controllers recebem HTTP; services concentram regras; repositories só entram com persistência implementada. Sem persistência selecionada, o backend é stateless; com banco, veja docs/OPERACAO.md na raiz para preparação e exemplos de leitura/escrita. Os fontes TypeScript usam import/export, com ESM por padrão; uma opção CommonJS muda a saída compilada, não o estilo dos fontes.\n\n{}\n## Manutenção\n\nConsulte AGENTS.md. boilerplate.toml registra opções sem credenciais. Ao modificar dependências, atualize o lockfile e rode os checks acima. Um projeto criado não implica que GitHub, Docker ou serviços tenham sido iniciados.\n",
+        "# {name}\n\nBase `{template}` criada pelo boilerplate para WSL/Linux. Execute os comandos nesta pasta.\n\n## Instalar, validar e executar\n\n{commands}\n## Configuração e integração\n\nAPI: http://localhost:3000, `/health` e `/api/v1/example`. Frontend: http://localhost:{web_port}. O cliente usa URL acessível ao navegador, e não DNS de container. `VITE_API_URL` e `NEXT_PUBLIC_API_URL` são públicas e aplicadas no build; nunca coloque segredos nelas.\n\nQuando .env.example existir, copie para .env antes de personalizar. Não versione .env. Os scripts dev/start dos backends Node carregam .env quando presente; Vite/Next usam seus carregadores próprios. O backend Rust lê o ambiente do processo: exporte as variáveis no shell.\n\nEstrutura: controllers recebem HTTP; services concentram regras; repositories só entram com persistência implementada. APIs incluem docs/ARQUITETURA.md com o mapa de camadas e o fluxo de dependências. Sem persistência selecionada, o backend é stateless; com banco, veja docs/OPERACAO.md na raiz para preparação e exemplos de leitura/escrita. Os fontes TypeScript usam import/export, com ESM por padrão; uma opção CommonJS muda a saída compilada, não o estilo dos fontes.\n\n{}\n## Manutenção\n\nConsulte AGENTS.md. boilerplate.toml registra opções sem credenciais. Ao modificar dependências, atualize o lockfile e rode os checks acima. Um projeto criado não implica que GitHub, Docker ou serviços tenham sido iniciados.\n",
         if compose {
             "## Containers\n\nDockerfile e .dockerignore acompanham a aplicação. Execute `docker --version` e `docker compose version` antes de usar. O Compose fica na raiz do projeto/repositório. Revise com `docker compose config`, execute `docker compose up --build` e pare com `docker compose down`. Um projeto separado usa URLs do host para conectar browser/API. Nenhum desses comandos é executado pelo gerador.\n"
         } else {
