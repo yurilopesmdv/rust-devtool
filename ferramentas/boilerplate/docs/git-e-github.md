@@ -20,7 +20,7 @@ Exemplo de criação privada **sem push**:
 
 ```sh
 boilerplate new minha-api --type backend --backend express-ts \
-  --destination ./minha-api --install no \
+  --destination "$HOME/projects/minha-api" --install no \
   --github yes --github-repo minha-org/minha-api --push no --non-interactive
 ```
 

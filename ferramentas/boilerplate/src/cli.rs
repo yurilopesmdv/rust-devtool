@@ -65,6 +65,7 @@ pub struct PlanArgs {
     pub config: Option<PathBuf>,
     #[arg(long = "type", value_enum)]
     pub kind: Option<ProjectType>,
+    /// Destino novo (padrão: $HOME/projects/<nome>).
     #[arg(long)]
     pub destination: Option<PathBuf>,
     #[arg(long, value_enum)]

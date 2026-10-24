@@ -43,12 +43,12 @@ Exemplo reproduzível sem perguntas e sem publicar no GitHub:
 ```sh
 cargo run -p rust-boilerplate -- new minha-api \
   --type backend --backend express-ts \
-  --destination ./projetos/minha-api \
+  --destination "$HOME/projects/minha-api" \
   --node-version 24 --module-system esm \
   --install yes --setup-node no --github no --non-interactive
 ```
 
-O caminho é relativo ao diretório onde você chama a CLI. Nesse exemplo, os arquivos são criados em `./projetos/minha-api`, incluindo `.git`, `package.json`, lockfile, `src/`, testes, `.gitignore`, `.nvmrc`, `.npmrc`, README, AGENTS.md e receita `boilerplate.toml`. `--git no` desativa Git local. Sem instalar agora, use `--install no` e os comandos de instalação ficarão no README.
+O destino padrão é `$HOME/projects/<nome>` (`/home/yurilopesm/projects/<nome>` neste WSL), independente do diretório onde você chama a CLI. No exemplo, o shell expande `$HOME` e os arquivos são criados em `$HOME/projects/minha-api`, incluindo `.git`, `package.json`, lockfile, `src/`, testes, `.gitignore`, `.nvmrc`, `.npmrc`, README, AGENTS.md e receita `boilerplate.toml`. `--git no` desativa Git local. Sem instalar agora, use `--install no` e os comandos de instalação ficarão no README.
 
 Sem Node compatível, esse exemplo preserva os fontes e informa como instalar. `--setup-node yes` autoriza preparar nvm/Node quando necessário. Em modo interativo, a preparação é oferecida e exige resposta afirmativa. A CLI verifica Node/npm e versões já instaladas no nvm antes de instalar; não reinstala frameworks, TypeScript, Vite, Nest ou Next globalmente.
 
@@ -77,7 +77,7 @@ cargo run -p rust-boilerplate -- plan plataforma \
 cargo run -p rust-boilerplate -- plan plataforma \
   --type fullstack --layout split \
   --frontend next-ts --backend nest-ts \
-  --web-dir ./plataforma-web --api-dir ./plataforma-api
+  --web-dir "$HOME/projects/plataforma-web" --api-dir "$HOME/projects/plataforma-api"
 ```
 
 A saída mostra aplicações, destinos absolutos, caminhos pretendidos, comandos futuros de instalação, integrações selecionadas e omitidas. Esses comandos são apenas exibidos. Os caminhos são uma proposta de estrutura, não uma lista final de todos os arquivos de um template gerável.

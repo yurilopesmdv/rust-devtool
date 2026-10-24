@@ -24,7 +24,7 @@ Na raiz deste repositório:
 cargo run -p rust-boilerplate -- new plataforma \
   --type fullstack --layout monorepo \
   --frontend react-vite-ts --backend express-ts \
-  --destination ./projetos/plataforma \
+  --destination "$HOME/projects/plataforma" \
   --database postgres --database-location local \
   --cache redis --cache-location local \
   --containers compose --kubernetes manifests \

@@ -74,7 +74,7 @@ catalog_version = "1" # Versão ilustrativa; será publicada com os templates.
 [project]
 type = "backend"
 name = "minha-api"
-destination = "./minha-api"
+destination = "/home/seu-usuario/projects/minha-api"
 
 [backend]
 template = "express-ts"

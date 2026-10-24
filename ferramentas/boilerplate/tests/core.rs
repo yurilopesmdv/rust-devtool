@@ -36,6 +36,7 @@ impl Drop for Temp {
 fn recipe() -> Recipe {
     let mut r = Recipe::default();
     r.project.name = Some("minha-api".into());
+    r.project.destination = Some("minha-api".into());
     r.project.kind = Some(ProjectType::Backend);
     r.backend.template = Some("express-ts".into());
     r
@@ -171,6 +172,7 @@ fn existing_and_overlapping_destinations_are_rejected_without_touching_content()
     let mut r = recipe();
     r.project.kind = Some(ProjectType::Fullstack);
     r.project.layout = Some(Layout::Split);
+    r.project.destination = None;
     r.project.web_dir = Some("novo".into());
     r.project.api_dir = Some("novo/api".into());
     r.frontend.template = Some("react-vite-ts".into());
@@ -189,6 +191,7 @@ fn dangling_destination_symlinks_and_overlapping_ancestor_symlinks_are_rejected(
     let mut r = recipe();
     r.project.kind = Some(ProjectType::Fullstack);
     r.project.layout = Some(Layout::Split);
+    r.project.destination = None;
     r.project.web_dir = Some("actual/new".into());
     r.project.api_dir = Some("alias/new/api".into());
     r.frontend.template = Some("react-vite-ts".into());
@@ -201,6 +204,7 @@ fn split_destinations_can_be_independent() {
     let mut r = recipe();
     r.project.kind = Some(ProjectType::Fullstack);
     r.project.layout = Some(Layout::Split);
+    r.project.destination = None;
     r.project.web_dir = Some("web".into());
     r.project.api_dir = Some("api".into());
     r.frontend.template = Some("react-vite-ts".into());

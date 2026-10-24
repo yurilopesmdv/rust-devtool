@@ -109,18 +109,34 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
     let name = r.project.name.as_deref().unwrap();
     if r.project.layout == Some(Layout::Split) {
         if r.project.web_dir.is_none() {
-            r.project.web_dir =
-                Some(line("Destino do frontend", Some(&format!("./{name}-web")))?.into());
+            r.project.web_dir = Some(
+                line(
+                    "Destino do frontend",
+                    Some(
+                        &crate::planner::default_destination(&format!("{name}-web"))?
+                            .to_string_lossy(),
+                    ),
+                )?
+                .into(),
+            );
         }
         if r.project.api_dir.is_none() {
-            r.project.api_dir =
-                Some(line("Destino do backend", Some(&format!("./{name}-api")))?.into());
+            r.project.api_dir = Some(
+                line(
+                    "Destino do backend",
+                    Some(
+                        &crate::planner::default_destination(&format!("{name}-api"))?
+                            .to_string_lossy(),
+                    ),
+                )?
+                .into(),
+            );
         }
     } else if r.project.destination.is_none() {
         r.project.destination = Some(
             line(
                 "Caminho de destino (diretório novo)",
-                Some(&format!("./{name}")),
+                Some(&crate::planner::default_destination(name)?.to_string_lossy()),
             )?
             .into(),
         );

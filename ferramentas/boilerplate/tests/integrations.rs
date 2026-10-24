@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 fn recipe(id: &str) -> Recipe {
     let mut r = Recipe::default();
     r.project.name = Some("integration-sample".into());
+    r.project.destination = Some("integration-sample".into());
     r.project.kind = Some(ProjectType::Backend);
     r.backend.template = Some(id.into());
     r.infrastructure.containers = Some(Containers::Compose);
@@ -179,6 +180,7 @@ fn split_frontend_recipe_has_no_backend_services_and_keeps_urls_and_image_contra
     let mut r = recipe("express-ts");
     r.project.kind = Some(ProjectType::Fullstack);
     r.project.layout = Some(Layout::Split);
+    r.project.destination = None;
     r.project.web_dir = Some("integration-split-web".into());
     r.project.api_dir = Some("integration-split-api".into());
     r.frontend.template = Some("next-ts".into());

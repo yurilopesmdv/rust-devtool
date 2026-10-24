@@ -4,7 +4,7 @@
 
 ## O que a CLI faz
 
-`boilerplate new` cria o projeto no destino informado, sem mesclar ou sobrescrever diretórios existentes. O assistente pede o caminho; em automação use `--destination`, ou `--web-dir` e `--api-dir` para split. Se a opção de destino for omitida em automação, usa o nome do projeto relativo ao cwd. Não usa a localização do executável ou da receita como base.
+`boilerplate new` cria o projeto no destino informado, sem mesclar ou sobrescrever diretórios existentes. O assistente pede o caminho; em automação use `--destination`, ou `--web-dir` e `--api-dir` para split. Sem destino explícito, tanto o assistente quanto a automação usam `$HOME/projects/<nome>`; para split, `$HOME/projects/<nome>-web` e `$HOME/projects/<nome>-api`. No seu WSL, a base é `/home/yurilopesm/projects`. Caminhos explícitos relativos continuam sendo resolvidos pelo diretório de execução; caminhos absolutos são usados diretamente. A CLI não expande `$HOME` nem `~` dentro de receitas TOML: nelas, use caminhos absolutos ou omita o destino para usar o padrão.
 
 Os arquivos são renderizados e validados antes de publicar. A publicação usa staging no mesmo filesystem e rename sem substituição no WSL/Linux. Se um destino surgir entre a verificação e a publicação, a operação falha sem sobrescrevê-lo. Em split, os dois projetos são renderizados primeiro; se a segunda publicação falhar, o primeiro fica preservado e o erro informa o que já foi publicado. Diretórios pais ausentes podem ser criados.
 
@@ -40,13 +40,13 @@ Os comandos usam scripts fixos e argumentos separados para versão/caminhos. O P
 # Monorepo: dois projetos e um Git na raiz.
 boilerplate new plataforma --type fullstack --layout monorepo \
   --frontend react-vite-ts --backend express-ts \
-  --destination ./plataforma --containers compose \
+  --destination "$HOME/projects/plataforma" --containers compose \
   --install yes --setup-node no --github no --non-interactive
 
 # Duas raízes, com Git e receita independentes.
 boilerplate new plataforma --type fullstack --layout split \
   --frontend next-ts --backend rust-axum \
-  --web-dir ./plataforma-web --api-dir ./plataforma-api \
+  --web-dir "$HOME/projects/plataforma-web" --api-dir "$HOME/projects/plataforma-api" \
   --install no --github no --non-interactive
 ```
 

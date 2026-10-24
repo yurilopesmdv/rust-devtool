@@ -35,6 +35,15 @@ fn require(condition: bool, message: &str) -> Result<(), Error> {
     }
 }
 
+/// Default project root is independent of the CLI working directory.
+pub fn default_destination(name: &str) -> Result<PathBuf, Error> {
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .ok_or_else(|| Error::input("HOME precisa ser um caminho absoluto para definir o destino padrão; informe um destino explícito"))?;
+    Ok(home.join("projects").join(name))
+}
+
 fn destination(path: &Path, cwd: &Path) -> Result<PathBuf, Error> {
     require(!path.as_os_str().is_empty(), "Destino não pode ser vazio")?;
     require(
@@ -307,6 +316,16 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     r.schema_version = Some(1);
     r.catalog_version = Some(crate::catalog::VERSION.to_string());
 
+    if split {
+        if r.project.web_dir.is_none() {
+            r.project.web_dir = Some(default_destination(&format!("{name}-web"))?);
+        }
+        if r.project.api_dir.is_none() {
+            r.project.api_dir = Some(default_destination(&format!("{name}-api"))?);
+        }
+    } else if r.project.destination.is_none() {
+        r.project.destination = Some(default_destination(name)?);
+    }
     let root = if split {
         None
     } else {

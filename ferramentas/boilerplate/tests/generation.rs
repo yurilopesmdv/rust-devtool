@@ -35,6 +35,7 @@ impl Drop for Temp {
 fn recipe(id: &str, role: ProjectType) -> Recipe {
     let mut r = Recipe::default();
     r.project.name = Some("meu-projeto".into());
+    r.project.destination = Some("meu-projeto".into());
     r.project.kind = Some(role);
     if role == ProjectType::Frontend {
         r.frontend.template = Some(id.into());
@@ -130,6 +131,7 @@ fn all_nine_pairs_generate_in_monorepo_and_split_without_absolute_recipe_paths()
                 r.frontend.template = Some(front.into());
                 r.project.layout = Some(layout);
                 if layout == Layout::Split {
+                    r.project.destination = None;
                     r.project.web_dir = Some("web".into());
                     r.project.api_dir = Some("api".into());
                 }
@@ -240,6 +242,8 @@ fn unattended_generation_requires_install_decision_and_never_prompts() {
         .args([
             "new",
             "api",
+            "--destination",
+            "api",
             "--type",
             "backend",
             "--backend",
@@ -258,6 +262,8 @@ fn json_generation_is_usable_without_any_global_tools_if_install_and_git_are_dis
         .env("PATH", "")
         .args([
             "new",
+            "api",
+            "--destination",
             "api",
             "--type",
             "backend",
@@ -294,6 +300,8 @@ fn missing_node_preserves_generated_files_and_does_not_install_without_authoriza
         .env("NVM_DIR", home.join("nvm"))
         .args([
             "new",
+            "api",
+            "--destination",
             "api",
             "--type",
             "backend",
@@ -338,6 +346,8 @@ fn github_is_opt_in_checks_auth_and_keeps_push_separate_using_fake_tools() {
         .args([
             "new",
             "api",
+            "--destination",
+            "api",
             "--type",
             "backend",
             "--backend",
@@ -375,6 +385,8 @@ fn push_without_github_is_rejected_before_publication() {
         .args([
             "new",
             "api",
+            "--destination",
+            "api",
             "--type",
             "backend",
             "--backend",
@@ -402,6 +414,8 @@ fn git_is_initialized_on_main_without_a_commit_or_remote_by_default() {
     let output = cli(&temp)
         .args([
             "new",
+            "api",
+            "--destination",
             "api",
             "--type",
             "backend",
@@ -464,6 +478,8 @@ fn github_auth_failure_preserves_sources_and_never_creates_a_remote() {
         .args([
             "new",
             "api",
+            "--destination",
+            "api",
             "--type",
             "backend",
             "--backend",
@@ -500,4 +516,72 @@ fn declared_empty_architecture_folders_are_preserved_for_future_features() {
             "{folder}"
         );
     }
+}
+
+#[test]
+fn default_generation_is_outside_working_directory_and_split_uses_same_base() {
+    let temp = Temp::new();
+    let home = temp.0.join("home");
+    let cwd = temp.0.join("rust-devtool");
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::create_dir(&cwd).unwrap();
+    let output = cli(&temp)
+        .current_dir(&cwd)
+        .env("HOME", &home)
+        .args([
+            "new",
+            "teste",
+            "--type",
+            "frontend",
+            "--frontend",
+            "vanilla-js",
+            "--install",
+            "no",
+            "--git",
+            "no",
+            "--github",
+            "no",
+            "--non-interactive",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(home.join("projects/teste/index.html").is_file());
+    assert_eq!(std::fs::read_dir(&cwd).unwrap().count(), 0);
+    let output = cli(&temp)
+        .current_dir(&cwd)
+        .env("HOME", &home)
+        .args([
+            "plan",
+            "plataforma",
+            "--type",
+            "fullstack",
+            "--layout",
+            "split",
+            "--frontend",
+            "vanilla-js",
+            "--backend",
+            "express-ts",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        plan["applications"][0]["destination"],
+        home.join("projects/plataforma-web").to_str().unwrap()
+    );
+    assert_eq!(
+        plan["applications"][1]["destination"],
+        home.join("projects/plataforma-api").to_str().unwrap()
+    );
 }
