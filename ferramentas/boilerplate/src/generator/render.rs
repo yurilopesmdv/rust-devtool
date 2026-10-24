@@ -122,6 +122,13 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             put(files, prefix.join(asset_path), content)?;
             count += 1;
         }
+        // Preserve the declared architecture even where a folder has no source yet.
+        for directory in t.paths.iter().filter(|path| path.ends_with('/')) {
+            let directory = prefix.join(directory);
+            if !files.keys().any(|path| path.starts_with(&directory)) {
+                put(files, directory.join(".gitkeep"), String::new())?;
+            }
+        }
         if count == 0 {
             return Err(Error::operation(format!("Template {} sem fontes", t.id)));
         }

@@ -481,3 +481,18 @@ fn github_auth_failure_preserves_sources_and_never_creates_a_remote() {
             .contains("repo create")
     );
 }
+
+#[test]
+fn declared_empty_architecture_folders_are_preserved_for_future_features() {
+    let (_temp, projects) = create("react-vite-ts", ProjectType::Frontend, false);
+    for folder in [
+        "src/components/.gitkeep",
+        "src/features/.gitkeep",
+        "docs/.gitkeep",
+    ] {
+        assert!(
+            projects[0].files.contains_key(&PathBuf::from(folder)),
+            "{folder}"
+        );
+    }
+}
