@@ -6,4 +6,6 @@ A [devtool](devtool/README.md) já contém os experimentos de hash SHA-256 e for
 
 Para adicionar uma ferramenta no futuro, crie um pacote em uma subpasta e registre seu caminho em `members` no `Cargo.toml` da raiz. Cada ferramenta deve ter seu próprio README com objetivo, exemplos de uso e testes dos comportamentos relevantes. Bibliotecas compartilhadas podem ganhar uma pasta `crates/` quando houver necessidade real de reutilização.
 
-Ideias para depois da trilha: busca em logs, inspeção de configurações, validação de JSON e resumo de arquivos. A instalação de comandos no terminal fica para essa etapa futura.
+A próxima evolução é o [gerador de projetos web](devtool/docs/gerador-web/README.md): frontend, backend e fullstack, com dados/cache e infraestrutura opcionais. O escopo, os comandos propostos e o plano de implementação estão documentados; a funcionalidade ainda não foi implementada.
+
+Outras ideias para evolução: busca em logs, inspeção de configurações, validação de JSON e resumo de arquivos.

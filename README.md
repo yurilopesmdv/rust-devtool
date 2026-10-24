@@ -27,6 +27,10 @@ Siga o [roteiro completo](guia/README.md): fundamentos → controle de fluxo →
 
 Cada pasta tem explicação em português, código executável, comparação com TypeScript e exercícios. Ao final, use o [projeto de consolidação](guia/projeto-final.md) para planejar sua primeira ferramenta. Consulte também a [ponte TypeScript → Rust](guia/referencias/typescript-para-rust.md).
 
+## Ferramentas em planejamento
+
+O [gerador de projetos web](ferramentas/devtool/docs/gerador-web/README.md) tem especificação para vanilla, React/Vite, Next.js, Express/TS, NestJS e Rust/Axum, com backend em camadas e infraestrutura opcional. Esta etapa define o fluxo e o plano; os comandos de geração ainda não estão implementados.
+
 ## Verificar o workspace
 
 ```sh
