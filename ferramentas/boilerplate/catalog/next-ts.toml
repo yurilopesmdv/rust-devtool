@@ -4,6 +4,7 @@ language = "TypeScript"
 framework = "Next.js"
 port = 3001
 container_port = 3001
+integration_adapter = "node-next"
 architecture = ""
 status = "ready"
 package_manager = "npm"

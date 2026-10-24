@@ -79,6 +79,8 @@ pub struct Backend {
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Infrastructure {
+    pub frontend_origin: Option<String>,
+    pub api_url: Option<String>,
     pub containers: Option<Containers>,
     pub kubernetes: Option<Kubernetes>,
     pub monitoring: Option<Monitoring>,

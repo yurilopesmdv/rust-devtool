@@ -23,17 +23,6 @@ fn put(files: &mut BTreeMap<PathBuf, String>, path: PathBuf, content: String) ->
 }
 
 pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error> {
-    // Fail before any writes; a plan may describe future integrations, new never pretends to implement them.
-    let unsupported: Vec<_> = plan
-        .integrations
-        .iter()
-        .filter(|i| i.as_str() != "compose")
-        .collect();
-    if !unsupported.is_empty() {
-        return Err(Error::input(format!(
-            "Geração dessas integrações ainda indisponível: {unsupported:?}. Nenhum arquivo foi criado. Use plan para revisar o escopo futuro."
-        )));
-    }
     let r = &plan.configuration;
     let name = r.project.name.as_deref().unwrap();
     let full = r.project.kind == Some(ProjectType::Fullstack);
@@ -48,6 +37,17 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
         .map(|t| t.port)
         .filter(|p| *p != 0)
         .unwrap_or(5173);
+    let default_origin = format!("http://localhost:{web_port}");
+    let frontend_origin = r
+        .infrastructure
+        .frontend_origin
+        .as_deref()
+        .unwrap_or(&default_origin);
+    let api_url = r
+        .infrastructure
+        .api_url
+        .as_deref()
+        .unwrap_or("http://localhost:3000");
     let mut roots: BTreeMap<PathBuf, BTreeMap<PathBuf, String>> = BTreeMap::new();
     for app in &plan.applications {
         let t = catalog.get(&app.template)?;
@@ -100,6 +100,8 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
                 asset_path
             };
             let content = source
+                .replace("http://localhost:{{WEB_PORT}}", frontend_origin)
+                .replace("http://localhost:3000", api_url)
                 .replace("{{PROJECT_NAME}}", &app_name)
                 .replace("{{RUST_CRATE}}", &app_name.replace('-', "_"))
                 .replace("{{NODE_VERSION}}", &r.toolchain.node_version)
@@ -122,6 +124,8 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             put(files, prefix.join(asset_path), content)?;
             count += 1;
         }
+        super::integrations::backend(r, t, files, prefix)?;
+        super::integrations::frontend(r, t, files, prefix)?;
         // Preserve the declared architecture even where a folder has no source yet.
         for directory in t.paths.iter().filter(|path| path.ends_with('/')) {
             let directory = prefix.join(directory);
@@ -195,8 +199,20 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             recipe.project.layout = None;
             recipe.project.web_dir = None;
             recipe.project.api_dir = None;
+            recipe.infrastructure.image = if t.role == ProjectType::Frontend {
+                recipe.infrastructure.image_web.take()
+            } else {
+                recipe.infrastructure.image_api.take()
+            };
+            recipe.infrastructure.image_web = None;
+            recipe.infrastructure.image_api = None;
+            recipe.infrastructure.frontend_origin = Some(frontend_origin.to_string());
+            recipe.infrastructure.api_url = Some(api_url.to_string());
             if t.role == ProjectType::Frontend {
                 recipe.backend = Backend::default();
+                recipe.infrastructure.secrets = Some(Secrets::Env);
+                recipe.infrastructure.vault_location = None;
+                recipe.infrastructure.monitoring = Some(Monitoring::None);
             } else {
                 recipe.frontend = Frontend::default();
             }
@@ -206,30 +222,7 @@ pub fn render(plan: &Plan, catalog: &Catalog) -> Result<Vec<ProjectFiles>, Error
             "boilerplate.toml".into(),
             toml::to_string_pretty(&recipe).map_err(|e| Error::operation(e.to_string()))?,
         )?;
-        if compose {
-            let mut yaml = String::from("services:\n");
-            for app in plan
-                .applications
-                .iter()
-                .filter(|app| mono || app.destination == root)
-            {
-                let t = catalog.get(&app.template)?;
-                let web = t.role == ProjectType::Frontend;
-                let service = if web { "web" } else { "api" };
-                let context = if mono {
-                    if web { "./apps/web" } else { "./apps/api" }
-                } else {
-                    "."
-                };
-                let port = if web { web_port } else { 3000 };
-                let internal = if web && t.id != "next-ts" { 8080 } else { port };
-                yaml.push_str(&format!("  {service}:\n    build:\n      context: {context}\n    ports:\n      - \"127.0.0.1:{port}:{internal}\"\n"));
-                if !web {
-                    yaml.push_str(&format!("    environment:\n      PORT: \"3000\"\n      FRONTEND_ORIGIN: http://localhost:{web_port}\n"));
-                }
-            }
-            put(&mut files, "compose.yaml".into(), yaml)?;
-        }
+        super::integrations::infra::apply(plan, catalog, &root, &mut files)?;
         projects.push(ProjectFiles {
             destination: root,
             files,
@@ -249,11 +242,11 @@ fn node_engine(version: &str) -> String {
 fn agent_rules(name: &str, manager: &str) -> String {
     let validation = match manager {
         "npm" => "npm run typecheck && npm test && npm run build",
-        "cargo" => "cargo fmt --check && cargo test && cargo clippy -- -D warnings",
+        "cargo" => "cargo fmt && cargo test && cargo clippy -- -D warnings",
         _ => "Servir por HTTP, verificar carregamento e a integração com a API no navegador",
     };
     format!(
-        "# {name}: instruções de manutenção\n\nLeia README.md e boilerplate.toml quando presente. Preserve as convenções existentes e a separação de responsabilidades.\n\n- Validação: `{validation}`.\n- Instale dependências localmente; mantenha o lockfile e não adicione CLIs globais.\n- Use import/export nos fontes JS/TS; module-system está no package.json.\n- Não versione .env, tokens, credenciais, node_modules, builds ou target.\n- Ao alterar rotas, configuração ou dependências, atualize documentação e testes de comportamento.\n- Dados/cache/Vault não fazem parte da base sem uma integração implementada.\n- Não publique, faça push ou altere configurações globais sem instrução explícita.\n"
+        "# {name}: instruções de manutenção\n\nLeia README.md e boilerplate.toml quando presente. Preserve as convenções existentes e a separação de responsabilidades.\n\n- Validação: `{validation}`.\n- Instale dependências localmente; mantenha o lockfile e não adicione CLIs globais.\n- Use import/export nos fontes JS/TS; module-system está no package.json.\n- Não versione .env, tokens, credenciais, node_modules, builds ou target.\n- Ao alterar rotas, configuração ou dependências, atualize documentação e testes de comportamento.\n- Consulte docs/OPERACAO.md na raiz para os módulos selecionados; não acrescente serviços quando a receita os omite.\n- Não publique, faça push ou altere configurações globais sem instrução explícita.\n"
     )
 }
 
@@ -263,7 +256,7 @@ fn app_readme(name: &str, template: &str, manager: &str, web_port: u16, compose:
             "```sh\n# Se necessário, carregue o nvm: . \"$HOME/.nvm/nvm.sh\"\nnvm install\nnvm use\nnpm ci\nnpm run typecheck\nnpm test\nnpm run build\nnpm run dev\n```\n\nPara ambiente com lockfile, prefira `npm ci`. O runtime local já é verificado pela engine e .nvmrc. As dependências ficam em node_modules, sem instalar framework/TypeScript globalmente.\n"
         }
         "cargo" => {
-            "```sh\ncargo fetch\ncargo fmt --check\ncargo test\ncargo run\n```\n\nVersione Cargo.lock após a instalação.\n"
+            "```sh\ncargo fetch\ncargo fmt\ncargo test\ncargo run\n```\n\nVersione Cargo.lock após a instalação.\n"
         }
         _ => {
             "```sh\npython3 -m http.server 5173 --bind 127.0.0.1\n```\n\nAbra http://localhost:5173. Python é apenas uma opção de servidor HTTP; não há dependências npm. Não abra diretamente por file://, pois os módulos precisam de HTTP.\n"

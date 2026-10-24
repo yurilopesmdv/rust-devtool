@@ -130,6 +130,22 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
         crate::generator::runtime::valid_node_version(&r.toolchain.node_version),
         "Versão Node deve ser numérica (22.12+ ou major 22/24+); aliases e comandos não são aceitos",
     )?;
+    for origin in [&r.infrastructure.frontend_origin, &r.infrastructure.api_url]
+        .into_iter()
+        .flatten()
+    {
+        let valid = origin.split_once("://").is_some_and(|(scheme, host)| {
+            ["http", "https"].contains(&scheme)
+                && !host.is_empty()
+                && host
+                    .bytes()
+                    .all(|c| c.is_ascii_alphanumeric() || b".-:[]".contains(&c))
+        });
+        require(
+            valid,
+            "URLs devem ser origens http(s) com host/porta, sem caminho, credenciais ou caracteres de shell",
+        )?;
+    }
     let kind = r
         .project
         .kind

@@ -147,14 +147,19 @@ fn all_nine_pairs_generate_in_monorepo_and_split_without_absolute_recipe_paths()
     }
 }
 #[test]
-fn integrations_without_adapters_are_rejected_before_any_write() {
+fn integrations_are_rendered_before_writing() {
     let temp = Temp::new();
     let c = Catalog::embedded().unwrap();
     let mut r = recipe("express-ts", ProjectType::Backend);
     r.backend.database = Some(Database::Postgres);
     r.backend.database_location = Some(Location::External);
     let p = planner::build(r, &c, &temp.0).unwrap();
-    assert!(render::render(&p, &c).is_err());
+    let projects = render::render(&p, &c).unwrap();
+    assert!(
+        projects[0]
+            .files
+            .contains_key(&PathBuf::from("src/infrastructure/database/client.ts"))
+    );
     assert_eq!(std::fs::read_dir(&temp.0).unwrap().count(), 0);
 }
 #[test]

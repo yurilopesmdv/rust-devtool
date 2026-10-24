@@ -8,3 +8,6 @@ target
 !.env.example
 *.log
 coverage
+**/.env
+**/.env.*
+!**/.env.example

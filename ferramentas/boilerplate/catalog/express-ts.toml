@@ -4,6 +4,7 @@ language = "TypeScript"
 framework = "Express"
 port = 3000
 container_port = 3000
+integration_adapter = "node-express"
 architecture = "layered"
 status = "ready"
 package_manager = "npm"

@@ -1,3 +1,4 @@
+pub mod integrations;
 pub mod render;
 pub mod runtime;
 pub mod vcs;

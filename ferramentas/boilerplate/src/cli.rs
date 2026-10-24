@@ -112,6 +112,10 @@ pub struct PlanArgs {
     pub node_version: Option<String>,
     #[arg(long, value_enum)]
     pub module_system: Option<ModuleSystem>,
+    #[arg(long)]
+    pub frontend_origin: Option<String>,
+    #[arg(long)]
+    pub api_url: Option<String>,
 }
 
 impl PlanArgs {
@@ -149,6 +153,8 @@ impl PlanArgs {
         apply!(r.infrastructure.image, self.image);
         apply!(r.infrastructure.image_web, self.image_web);
         apply!(r.infrastructure.image_api, self.image_api);
+        apply!(r.infrastructure.frontend_origin, self.frontend_origin);
+        apply!(r.infrastructure.api_url, self.api_url);
         if let Some(version) = &self.node_version {
             r.toolchain.node_version = version.clone();
         }

@@ -28,6 +28,18 @@ fn main() {
         source.push_str(&format!("({id:?}, {name:?}, include_str!({path:?})),\n"));
     }
     source.push_str("];\n");
+    println!("cargo:rerun-if-changed=integrations/rust-locks");
+    source.push_str("pub const RUST_LOCKS: &[(&str, &str)] = &[\n");
+    let mut locks: Vec<_> = fs::read_dir(root.join("integrations/rust-locks"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    locks.sort();
+    for path in locks {
+        let id = path.file_stem().unwrap().to_str().unwrap();
+        source.push_str(&format!("({id:?},include_str!({path:?})),\n"));
+    }
+    source.push_str("];\n");
     let output = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("catalog.rs");
     fs::write(output, source).expect("gerar índice do catálogo");
 }

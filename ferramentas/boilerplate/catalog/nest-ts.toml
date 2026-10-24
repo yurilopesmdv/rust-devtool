@@ -4,6 +4,7 @@ language = "TypeScript"
 framework = "NestJS"
 port = 3000
 container_port = 3000
+integration_adapter = "node-nest"
 architecture = "layered"
 status = "ready"
 package_manager = "npm"

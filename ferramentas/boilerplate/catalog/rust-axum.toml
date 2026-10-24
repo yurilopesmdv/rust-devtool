@@ -4,6 +4,7 @@ language = "Rust"
 framework = "Axum + Tokio"
 port = 3000
 container_port = 3000
+integration_adapter = "rust-axum"
 architecture = "layered"
 status = "ready"
 package_manager = "cargo"

@@ -27,6 +27,7 @@ pub struct Template {
     pub role: ProjectType,
     pub language: String,
     pub framework: String,
+    pub integration_adapter: Option<String>,
     #[serde(default)]
     pub port: u16,
     pub container_port: Option<u16>,

@@ -194,8 +194,121 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             },
         );
     }
-    println!(
-        "Banco, cache, Kubernetes, monitoria e Vault continuam apenas no planejador; new ainda não gera esses adapters."
-    );
+
+    if r.infrastructure.kubernetes.is_none() {
+        r.infrastructure.kubernetes = Some(if decision("Gerar manifests Kubernetes?", false)? {
+            Kubernetes::Manifests
+        } else {
+            Kubernetes::None
+        });
+    }
+    let local_infra = r.infrastructure.containers == Some(Containers::Compose)
+        || r.infrastructure.kubernetes == Some(Kubernetes::Manifests);
+    if r.project.kind != Some(ProjectType::Frontend) {
+        if r.backend.database.is_none() {
+            let value = choose(
+                "Banco de dados",
+                &["none".into(), "postgres".into(), "mongodb".into()],
+            )?;
+            r.backend.database = Some(match value.as_str() {
+                "postgres" => Database::Postgres,
+                "mongodb" => Database::Mongodb,
+                _ => Database::None,
+            });
+        }
+        if r.backend.database != Some(Database::None) && r.backend.database_location.is_none() {
+            r.backend.database_location =
+                Some(service_location("Localização do banco", local_infra)?);
+        }
+        if r.backend.cache.is_none() {
+            r.backend.cache = Some(if decision("Usar Redis como cache opcional?", false)? {
+                Cache::Redis
+            } else {
+                Cache::None
+            });
+        }
+        if r.backend.cache == Some(Cache::Redis) && r.backend.cache_location.is_none() {
+            r.backend.cache_location = Some(service_location("Localização do Redis", local_infra)?);
+        }
+        if r.infrastructure.secrets.is_none() {
+            r.infrastructure.secrets = Some(
+                if decision(
+                    "Integrar Vault para entrega de segredos por arquivos?",
+                    false,
+                )? {
+                    Secrets::Vault
+                } else {
+                    Secrets::Env
+                },
+            );
+        }
+        if r.infrastructure.secrets == Some(Secrets::Vault)
+            && r.infrastructure.vault_location.is_none()
+        {
+            r.infrastructure.vault_location =
+                Some(service_location("Localização do Vault", local_infra)?);
+        }
+        if r.infrastructure.frontend_origin.is_none() {
+            let port = if r.frontend.template.as_deref() == Some("next-ts") {
+                3001
+            } else {
+                5173
+            };
+            r.infrastructure.frontend_origin = Some(line(
+                "Origem permitida do frontend (CORS)",
+                Some(&format!("http://localhost:{port}")),
+            )?);
+        }
+    }
+    if r.frontend.template.is_some() && r.infrastructure.api_url.is_none() {
+        r.infrastructure.api_url = Some(line(
+            "URL da API acessível ao navegador",
+            Some("http://localhost:3000"),
+        )?);
+    }
+    if r.infrastructure.monitoring.is_none() {
+        let supported = r.backend.template.is_some()
+            || r.frontend.template.as_deref() == Some("next-ts")
+            || r.infrastructure.containers == Some(Containers::Compose);
+        r.infrastructure.monitoring = Some(
+            if supported && decision("Adicionar Prometheus e Grafana?", false)? {
+                Monitoring::PrometheusGrafana
+            } else {
+                Monitoring::None
+            },
+        );
+    }
+    if r.infrastructure.kubernetes == Some(Kubernetes::Manifests) {
+        if r.infrastructure.namespace.is_none() {
+            r.infrastructure.namespace =
+                Some(line("Namespace Kubernetes", r.project.name.as_deref())?);
+        }
+        if r.infrastructure.containers != Some(Containers::Compose) {
+            if r.project.kind == Some(ProjectType::Fullstack) {
+                if r.infrastructure.image_web.is_none() {
+                    r.infrastructure.image_web = Some(line("Imagem frontend com tag", None)?);
+                }
+                if r.infrastructure.image_api.is_none() {
+                    r.infrastructure.image_api = Some(line("Imagem backend com tag", None)?);
+                }
+            } else if r.infrastructure.image.is_none() {
+                r.infrastructure.image = Some(line("Imagem da aplicação com tag", None)?);
+            }
+        }
+    }
     Ok(r)
+}
+fn service_location(label: &str, local: bool) -> Result<Location, Error> {
+    loop {
+        match line(
+            &format!("{label} (local/external)"),
+            Some(if local { "local" } else { "external" }),
+        )?
+        .as_str()
+        {
+            "local" => return Ok(Location::Local),
+            "external" => return Ok(Location::External),
+            _ => println!("Escolha local ou external"),
+        }
+    }
 }
