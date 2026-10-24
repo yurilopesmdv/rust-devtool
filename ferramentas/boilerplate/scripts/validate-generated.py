@@ -70,7 +70,7 @@ def main():
     parser.add_argument(
         "--commonjs-only",
         action="store_true",
-        help="Somente Express/CommonJS com os dois bancos",
+        help="Somente Express/CommonJS; --minimal omite banco e infraestrutura",
     )
     parser.add_argument(
         "--stacks", nargs="+", help="IDs do catálogo; padrão: todas as bases prontas"

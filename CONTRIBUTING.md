@@ -44,7 +44,7 @@ Ajuda/argumentos inválidos não executam Cargo. A primeira falha encerra a exec
 
 O [workflow Quality](.github/workflows/quality.yml) executa o wrapper e o mesmo comando em PRs, push em main e execução manual. Usa runner Linux, Rust stable, token de leitura e checkout por SHA, sem credenciais persistidas. A primeira execução no GitHub ainda precisa ser observada após o envio dos arquivos; validação local do YAML não equivale a um run remoto.
 
-O workflow cobre o workspace. CI das aplicações geradas e persistência estão nas tasks T003–T006; esses jobs ainda não estão implementados. Para exigir um check antes de merge, configure as regras de branch/required checks no GitHub depois do primeiro run. Esse efeito não vem apenas do arquivo YAML.
+O workflow cobre o workspace e uma matriz de seis aplicações npm geradas: as cinco bases JavaScript/TypeScript e Express/CommonJS. Os jobs Python, Rust gerado e persistência continuam nas tasks T004–T006. Para exigir um check antes de merge, configure as regras de branch/required checks no GitHub depois do primeiro run. Esse efeito não vem apenas do arquivo YAML.
 
 ## Checks da aplicação gerada
 

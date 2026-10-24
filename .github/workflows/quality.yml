@@ -38,3 +38,52 @@ jobs:
 
       - name: Check workspace
         run: sh scripts/check-workspace.sh
+
+  generated-node:
+    name: Generated Node (${{ matrix.stack }}, ${{ matrix.modules }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stack: vanilla-js
+            modules: esm
+          - stack: react-vite-ts
+            modules: esm
+          - stack: next-ts
+            modules: esm
+          - stack: express-ts
+            modules: esm
+          - stack: nest-ts
+            modules: esm
+          - stack: express-ts
+            modules: commonjs
+    env:
+      RUSTUP_TOOLCHAIN: stable
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Prepare Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Validate generated application
+        env:
+          TEMPLATE_ID: ${{ matrix.stack }}
+          MODULE_SYSTEM: ${{ matrix.modules }}
+        run: |
+          if [ "$MODULE_SYSTEM" = commonjs ]; then
+            python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --commonjs-only
+          else
+            python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks "$TEMPLATE_ID"
+          fi
