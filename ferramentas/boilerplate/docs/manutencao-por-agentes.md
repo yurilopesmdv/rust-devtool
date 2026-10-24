@@ -48,3 +48,5 @@ Pontos de extensão por texto devem usar integrations::replace/replace_source e 
 Configuração e bootstrap Node ficam em integrations/node/config-env.ts, config-vault.ts, lifecycle.ts, express-server.ts, nest-lifecycle.module.ts e database-prepare.ts. Slots // @boilerplate:* do lifecycle são substituídos uma única vez e desaparecem da saída. O server stateless continua em templates/express-ts/src/server.ts; mudanças comuns ao listener devem considerar também o bootstrap integrado.
 
 O módulo Rust de exemplo usa integrations/rust/example-service.rs e seus fragmentos de controller/escrita. Use os slots // @boilerplate:* com o helper verificado, sem localizar/recortar funções pelo texto de uma assinatura. Os arquivos só são analisados como Rust completo depois da composição e formatação.
+
+Para snapshots Cargo, use o [atualizador e seus modos](locks.md). O manifesto vem do mesmo compositor do gerador; mudanças de versões/features devem passar pela checagem das 12 combinações.

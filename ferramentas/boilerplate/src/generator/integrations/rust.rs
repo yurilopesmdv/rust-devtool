@@ -1,18 +1,19 @@
 use super::*;
 
-pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> {
-    let db = r.backend.database.unwrap_or(Database::None);
-    let cache = r.backend.cache == Some(Cache::Redis);
-    let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
-    let vault = r.infrastructure.secrets == Some(Secrets::Vault);
-    let mut cargo = source_mut(files, prefix, "Cargo.toml")?
+/// Shared dependency composition for generation and lock maintenance.
+pub fn manifest(
+    source: &str,
+    db: Database,
+    cache: bool,
+    metrics: bool,
+) -> Result<toml::Table, Error> {
+    let mut cargo = source
         .parse::<toml::Table>()
         .map_err(|e| Error::operation(e.to_string()))?;
     let dependencies = cargo
         .get_mut("dependencies")
-        .unwrap()
-        .as_table_mut()
-        .unwrap();
+        .and_then(toml::Value::as_table_mut)
+        .ok_or_else(|| Error::operation("Cargo.toml precisa declarar dependencies como tabela"))?;
     if db == Database::Postgres {
         dependencies.insert("sqlx".into(),toml::from_str::<toml::Table>("dep = { version = '=0.8.6', default-features = false, features = ['runtime-tokio', 'tls-rustls', 'postgres'] }").unwrap().remove("dep").unwrap());
     }
@@ -25,6 +26,15 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     if metrics {
         dependencies.insert("prometheus".into(), toml::Value::String("=0.14.0".into()));
     }
+    Ok(cargo)
+}
+
+pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> {
+    let db = r.backend.database.unwrap_or(Database::None);
+    let cache = r.backend.cache == Some(Cache::Redis);
+    let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
+    let vault = r.infrastructure.secrets == Some(Secrets::Vault);
+    let cargo = manifest(source_mut(files, prefix, "Cargo.toml")?, db, cache, metrics)?;
     insert(
         files,
         prefix,

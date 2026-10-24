@@ -53,7 +53,7 @@ python3 scripts/check_docs.py
 python3 -m unittest discover -s scripts/tests -p 'test_check_docs.py'
 ```
 
-O job documentation usa esses comandos, sem dependências pip. Verifica destinos e fragmentos Markdown locais; URLs externas são ignoradas e não há rede. Veja os [formatos suportados](scripts/README.md).
+O job documentation usa esses comandos e descobre os demais testes Python de manutenção com test_*.py, sem dependências pip. Verifica destinos e fragmentos Markdown locais; URLs externas são ignoradas e não há rede. Veja os [formatos suportados](scripts/README.md).
 
 ## Checks da aplicação gerada
 
@@ -70,3 +70,5 @@ Use serviços descartáveis dedicados para --with-services. Não aponte a suíte
 ## Registrar a entrega
 
 Revise o diff, atualize documentação/receitas afetadas e registre os comandos efetivamente executados na task. Diferencie validação local, testes com serviços e execução remota. Não conclua tasks dependentes por antecipação, nem marque uma stack ready sem seus checks. Uma correção comum não exige executar todos os serviços e todas as linguagens: amplie a validação conforme o impacto da mudança.
+
+Ao alterar dependências Rust distribuídas, execute o [check dos snapshots](ferramentas/boilerplate/docs/locks.md). O job rust-lock-snapshots usa --check, sem modificar os arquivos; sua primeira execução remota também precisa ser observada após o envio.

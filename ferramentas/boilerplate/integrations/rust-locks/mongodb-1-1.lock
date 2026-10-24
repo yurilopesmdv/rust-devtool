@@ -142,20 +142,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "{{PROJECT_NAME}}"
-version = "0.1.0"
-dependencies = [
- "axum",
- "mongodb",
- "prometheus",
- "redis",
- "serde_json",
- "tokio",
- "tower",
- "tower-http",
-]
-
-[[package]]
 name = "bson"
 version = "2.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1549,6 +1535,20 @@ dependencies = [
  "libc",
  "untrusted",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "{{PROJECT_NAME}}"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "mongodb",
+ "prometheus",
+ "redis",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tower-http",
 ]
 
 [[package]]

@@ -32,3 +32,7 @@ O checker retorna 1 se há link local inválido e mostra arquivo, linha e destin
 ## Aplicações geradas
 
 O runner específico permanece em [validate-generated.py](../ferramentas/boilerplate/scripts/validate-generated.py). Consulte [validação de boilerplates](../ferramentas/boilerplate/docs/validacao.md) para seleção de stacks, modo mínimo e serviços descartáveis.
+
+## Locks distribuídos
+
+O [guia de locks](../ferramentas/boilerplate/docs/locks.md) descreve --check/--write e a atualização explícita de transitivas Rust. Os comandos usam o mesmo compositor de manifestos do gerador; não mantenha uma segunda lista de versões nos scripts.
