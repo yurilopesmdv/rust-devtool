@@ -1,0 +1,14 @@
+id = "vanilla-js"
+role = "frontend"
+language = "JavaScript"
+framework = "HTML/CSS/JS"
+architecture = ""
+status = "planned"
+package_manager = "none"
+paths = ["index.html", "assets/", "src/scripts/", "src/styles/", "src/views/", "docs/"]
+capabilities = ["compose", "kubernetes", "prometheus-grafana-container"]
+install = []
+requirements = []
+
+[conditional_paths]
+compose = ["Dockerfile", ".dockerignore"]

@@ -1,0 +1,23 @@
+id = "next-ts"
+role = "frontend"
+language = "TypeScript"
+framework = "Next.js"
+architecture = ""
+status = "planned"
+package_manager = "npm"
+paths = ["src/app/", "src/components/", "src/features/", "src/services/", "docs/"]
+capabilities = ["compose", "kubernetes", "prometheus-grafana"]
+install = ["npm", "install"]
+
+[[requirements]]
+command = "node"
+args = ["--version"]
+purpose = "Instalar e executar a aplicação; não é necessário para planejar"
+
+[[requirements]]
+command = "npm"
+args = ["--version"]
+purpose = "Instalar e executar a aplicação; não é necessário para planejar"
+
+[conditional_paths]
+compose = ["Dockerfile", ".dockerignore"]

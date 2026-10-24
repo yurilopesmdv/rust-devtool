@@ -1,0 +1,28 @@
+id = "express-ts"
+role = "backend"
+language = "TypeScript"
+framework = "Express"
+architecture = "layered"
+status = "planned"
+package_manager = "npm"
+paths = ["src/config/", "src/http/middlewares/", "src/modules/example/controllers/", "src/modules/example/services/", "src/modules/example/dto/", "tests/", "docs/"]
+capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+install = ["npm", "install"]
+
+[[requirements]]
+command = "node"
+args = ["--version"]
+purpose = "Instalar e executar a aplicação; não é necessário para planejar"
+
+[[requirements]]
+command = "npm"
+args = ["--version"]
+purpose = "Instalar e executar a aplicação; não é necessário para planejar"
+
+[conditional_paths]
+compose = ["Dockerfile", ".dockerignore"]
+postgres = ["src/infrastructure/database/", "src/modules/example/repositories/"]
+mongodb = ["src/infrastructure/database/", "src/modules/example/repositories/"]
+redis = ["src/infrastructure/cache/"]
+vault = ["src/infrastructure/secrets/"]
+prometheus-grafana = ["src/infrastructure/observability/"]

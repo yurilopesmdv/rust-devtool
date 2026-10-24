@@ -1,4 +1,4 @@
 [workspace]
-members = ["guia", "ferramentas/devtool"]
+members = ["guia", "ferramentas/devtool", "ferramentas/boilerplate"]
 default-members = ["ferramentas/devtool"]
 resolver = "3"

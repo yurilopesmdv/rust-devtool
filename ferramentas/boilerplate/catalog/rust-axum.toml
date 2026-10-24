@@ -1,0 +1,28 @@
+id = "rust-axum"
+role = "backend"
+language = "Rust"
+framework = "Axum + Tokio"
+architecture = "layered"
+status = "planned"
+package_manager = "cargo"
+paths = ["src/config/", "src/http/", "src/modules/example/", "tests/", "docs/"]
+capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+install = ["cargo", "fetch", "--locked"]
+
+[[requirements]]
+command = "rustc"
+args = ["--version"]
+purpose = "Instalar e executar a aplicação; não é necessário para planejar"
+
+[[requirements]]
+command = "cargo"
+args = ["--version"]
+purpose = "Instalar e executar a aplicação; não é necessário para planejar"
+
+[conditional_paths]
+compose = ["Dockerfile", ".dockerignore"]
+postgres = ["src/infrastructure/database/", "src/modules/example/repositories/"]
+mongodb = ["src/infrastructure/database/", "src/modules/example/repositories/"]
+redis = ["src/infrastructure/cache/"]
+vault = ["src/infrastructure/secrets/"]
+prometheus-grafana = ["src/infrastructure/observability/"]
