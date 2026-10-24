@@ -7,3 +7,43 @@ publish = false
 [[example]]
 name = "emprestimo_original"
 path = "03-ownership/emprestimo_original.rs"
+
+[[example]]
+name = "fundamentos"
+path = "01-fundamentos/main.rs"
+
+[[example]]
+name = "controle_de_fluxo"
+path = "02-controle-de-fluxo/main.rs"
+
+[[example]]
+name = "ownership"
+path = "03-ownership/main.rs"
+
+[[example]]
+name = "modelagem"
+path = "04-structs-e-enums/main.rs"
+
+[[example]]
+name = "erros"
+path = "05-tratamento-de-erros/main.rs"
+
+[[example]]
+name = "colecoes"
+path = "06-colecoes-e-iteradores/main.rs"
+
+[[example]]
+name = "traits"
+path = "07-traits-generics-lifetimes/main.rs"
+
+[[example]]
+name = "modulos"
+path = "08-modulos-e-testes/main.rs"
+
+[[example]]
+name = "busca"
+path = "09-arquivos-e-cli/main.rs"
+
+[[example]]
+name = "concorrencia"
+path = "10-concorrencia/main.rs"

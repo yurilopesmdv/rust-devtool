@@ -12,7 +12,6 @@ pub fn format_json(file_path: &str) -> Result<String, Box<dyn Error>> {
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
 
