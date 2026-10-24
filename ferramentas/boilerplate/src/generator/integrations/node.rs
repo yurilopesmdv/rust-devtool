@@ -22,9 +22,9 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         start.push_str("readConfig('APP_SECRET');\n");
     }
     let config = if vault {
-        "import { readFileSync } from 'node:fs';\nexport function readConfig(key:string, required=true):string|undefined { const direct=process.env[key]; const path=process.env[`${key}_FILE`]; if(direct!==undefined&&path!==undefined) throw new Error(`${key}: configure valor OU arquivo, não ambos`); const value=path ? readFileSync(path,'utf8').trim() : direct; if(required&&!value) throw new Error(`${key} ausente`); return value; }\n"
+        include_str!("../../../integrations/node/config-vault.ts")
     } else {
-        "export function readConfig(key:string, required=true):string|undefined { const value=process.env[key]; if(required&&!value) throw new Error(`${key} ausente`); return value; }\n"
+        include_str!("../../../integrations/node/config-env.ts")
     };
     insert(files, prefix, "src/config/env.ts", config);
     if db != Database::None {
@@ -75,7 +75,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             files,
             prefix,
             "src/infrastructure/database/prepare.ts",
-            "import { initialize, close } from './client.js';\nimport { prepare } from './schema.js';\nasync function main(){try{await initialize();await prepare();}finally{await close();}}\nvoid main().catch(()=>{console.error('Falha ao preparar banco; confira configuração e conectividade');process.exitCode=1;});\n",
+            include_str!("../../../integrations/node/database-prepare.ts"),
         );
         package["scripts"]["db:prepare"] =
             json!("node --env-file-if-exists=.env dist/infrastructure/database/prepare.js");
@@ -95,14 +95,26 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         start.push_str("await cache.initialize();\n");
         stop.push_str("await cache.close();\n");
     }
-    insert(
-        files,
-        prefix,
-        "src/infrastructure/lifecycle.ts",
-        format!(
-            "{imports}export async function initialize(){{try{{{start}}}catch{{await close();throw new Error('Dependência obrigatória indisponível; confira configuração');}}}}\nexport async function close(){{{stop}}}\nexport async function readiness(){{{ready}return {{status:'ok'}};}}\n"
-        ),
-    );
+    let mut lifecycle = include_str!("../../../integrations/node/lifecycle.ts").to_string();
+    let start = if start.is_empty() {
+        "// Nenhuma conexão externa selecionada."
+    } else {
+        start.trim_end()
+    };
+    for (slot, value) in [
+        ("imports", imports.trim_end()),
+        ("start", start),
+        ("stop", stop.trim_end()),
+        ("ready", ready.trim_end()),
+    ] {
+        replace_source(
+            &mut lifecycle,
+            "node/lifecycle.ts",
+            &format!("// @boilerplate:{slot}"),
+            value,
+        )?;
+    }
+    insert(files, prefix, "src/infrastructure/lifecycle.ts", lifecycle);
     let mut service = String::new();
     if db != Database::None {
         service.push_str("import * as repository from '../repositories/example.repository.js';\n");
@@ -179,26 +191,13 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 "routes.get('/example', exampleController);\nroutes.post('/example',writeController);",
             )?;
         }
-        replace(
+        source_mut(files, prefix, "src/server.ts")?;
+        insert(
             files,
             prefix,
             "src/server.ts",
-            "const server = app.listen",
-            "async function main(){ await initialize();\nconst server = app.listen",
-        )?;
-        replace(
-            files,
-            prefix,
-            "src/server.ts",
-            "server.close(() => process.exit(0));",
-            "server.close(() => { void close().finally(()=>process.exit(0)); });",
-        )?;
-        let s = source_mut(files, prefix, "src/server.ts")?;
-        s.insert_str(
-            0,
-            "import {initialize,close} from './infrastructure/lifecycle.js';\n",
+            include_str!("../../../integrations/node/express-server.ts"),
         );
-        s.push_str("}\nvoid main().catch(()=>{console.error('Falha no bootstrap; confira configuração e dependências');process.exitCode=1;});\n");
         replace(
             files,
             prefix,
@@ -310,7 +309,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             files,
             prefix,
             "src/infrastructure/infrastructure.module.ts",
-            "import {Module,Injectable,type OnModuleInit,type OnApplicationShutdown} from '@nestjs/common';\nimport {initialize,close} from './lifecycle.js';\n@Injectable() class IntegrationLifecycle implements OnModuleInit,OnApplicationShutdown {async onModuleInit(){await initialize();} async onApplicationShutdown(){await close();}}\n@Module({providers:[IntegrationLifecycle]}) export class InfrastructureModule {}\n",
+            include_str!("../../../integrations/node/nest-lifecycle.module.ts"),
         );
         source_mut(files, prefix, "src/app.module.ts")?.insert_str(
             0,
