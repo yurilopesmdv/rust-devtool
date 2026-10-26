@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      docker_smoke:
+        description: Executar imagens mínimas em daemon descartável do runner
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,6 +19,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docker-smoke:
+    if: github.event_name == 'workflow_dispatch' && inputs.docker_smoke
+    name: Docker smoke (${{ matrix.stack }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: [vanilla-js, react-vite-ts, next-ts, express-ts, nest-ts, rust-axum, python-fastapi]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Build, start and stop generated image
+        env:
+          TEMPLATE_ID: ${{ matrix.stack }}
+        run: python3 ferramentas/boilerplate/scripts/docker_smoke.py --disposable-daemon --stack "$TEMPLATE_ID"
+
   workspace:
     name: Workspace (Rust)
     runs-on: ubuntu-24.04

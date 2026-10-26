@@ -68,3 +68,15 @@ O workflow Quality agora separa o workspace, bases mínimas npm/Python/Rust e pe
 No Linux/WSL, instalações executadas pelo gerador têm limite de 900 segundos por comando. Ajuste com `BOILERPLATE_COMMAND_TIMEOUT_SECONDS` (inteiro positivo). Timeout retorna 124; Ctrl-C retorna 130; SIGTERM retorna 143. O grupo do comando recebe TERM e, após uma tolerância curta, KILL. Os arquivos publicados permanecem: entre na aplicação e retome `npm ci`, `uv sync --locked` ou `cargo fetch --locked`, conforme seu README. Nenhum serviço é iniciado por essa etapa.
 
 O runner validate-generated.py limita cada comando a 900 segundos. A manutenção de locks limita cada resolução/instalação a 300 segundos. Timeout e Ctrl-C encerram o grupo Linux, incluindo filhos; comandos destacados voluntariamente em outra sessão não pertencem ao grupo supervisionado. Os testes usam processos falsos lentos e verificam que os filhos deixam de executar.
+
+## Smoke Docker opcional
+
+Use somente um contexto Docker Linux descartável dedicado a testes. O comando verifica o daemon existente; não instala/inicia Docker e não participa de new:
+
+```sh
+python3 ferramentas/boilerplate/scripts/docker_smoke.py --disposable-daemon --stack express-ts
+```
+
+As sete bases web são aceitas por --stack. O teste gera sem instalar no host/Git/GitHub, constrói a imagem mínima, verifica UID não root e arquivo principal, publica uma porta somente no loopback e aguarda /ready (APIs) ou / (frontends). Depois envia stop e rejeita OOM/SIGKILL. Nomes e labels são exclusivos por execução; finally remove somente o container e tag próprios, sem prune ou remoção de volumes. Imagens base e cache de build podem permanecer no daemon de teste. Não execute contra um daemon de produção.
+
+No workflow Quality, a opção manual docker_smoke é false por padrão e habilita uma matriz separada em runners descartáveis. Builds precisam de acesso aos registries, rede e espaço; o limite é 35 minutos por stack. A validação local do runner cobre cleanup simulado em sucesso/falha; a execução real das imagens permanece pendente porque o ambiente de desenvolvimento não possui daemon disponível.
