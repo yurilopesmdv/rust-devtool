@@ -27,7 +27,7 @@ A proposta para este repositório preserva essa experiência com núcleo Rust e 
 
 ## O que é decisão deste projeto
 
-O catálogo de sete stacks, a arquitetura em camadas, os layouts de repositório, o formato da receita, as opções `none`, o contrato de arquivos de segredos, os limites de execução e a sequência de implementação são decisões/propostas locais. As fontes explicam os mecanismos utilizados; não validam automaticamente os templates ou suas combinações. Consulte validacao.md para a evidência e os limites da validação local.
+O catálogo de oito stacks, a arquitetura em camadas, os layouts de repositório, o formato da receita, as opções `none`, o contrato de arquivos de segredos, os limites de execução e a sequência de implementação são decisões/propostas locais. As fontes explicam os mecanismos utilizados; não validam automaticamente os templates ou suas combinações. Consulte validacao.md para a evidência e os limites da validação local.
 
 ## Criação, Node e GitHub
 

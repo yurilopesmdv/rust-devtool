@@ -77,7 +77,7 @@ Use somente um contexto Docker Linux descartável dedicado a testes. O comando v
 python3 ferramentas/boilerplate/scripts/docker_smoke.py --disposable-daemon --stack express-ts
 ```
 
-As sete bases web são aceitas por --stack. O teste gera sem instalar no host/Git/GitHub, constrói a imagem mínima, verifica UID não root e arquivo principal, publica uma porta somente no loopback e aguarda /ready (APIs) ou / (frontends). Depois envia stop e rejeita OOM/SIGKILL. Nomes e labels são exclusivos por execução; finally remove somente o container e tag próprios, sem prune ou remoção de volumes. Imagens base e cache de build podem permanecer no daemon de teste. Não execute contra um daemon de produção.
+As oito bases web são aceitas por --stack. O teste gera sem instalar no host/Git/GitHub, constrói a imagem mínima, verifica UID não root e arquivo principal, publica uma porta somente no loopback e aguarda /ready (APIs) ou / (frontends). Depois envia stop e rejeita OOM/SIGKILL. Nomes e labels são exclusivos por execução; finally remove somente o container e tag próprios, sem prune ou remoção de volumes. Imagens base e cache de build podem permanecer no daemon de teste. Não execute contra um daemon de produção.
 
 No workflow Quality, a opção manual docker_smoke é false por padrão e habilita uma matriz separada em runners descartáveis. Builds precisam de acesso aos registries, rede e espaço; o limite é 35 minutos por stack. A validação local do runner cobre cleanup simulado em sucesso/falha; a execução real das imagens permanece pendente porque o ambiente de desenvolvimento não possui daemon disponível.
 

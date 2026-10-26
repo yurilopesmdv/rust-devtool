@@ -2,7 +2,7 @@
 
 [Guia de uso](../README.md) · [Arquitetura do pacote](arquitetura-do-pacote.md)
 
-O catálogo é orientado por metadados, sem enum de linguagens. Python já está implementado como exemplo completo. Go e Java poderão ter seus próprios IDs, comandos e estruturas. Adicionar uma linguagem ao planejador é diferente de entregar um boilerplate gerável: o primeiro passo cadastra a intenção; o segundo exige fontes, adapters, dependências fixadas e testes reais.
+O catálogo é orientado por metadados, sem enum de linguagens. Python e Go já estão implementados como referências com convenções próprias. Java poderá seguir o mesmo processo. Adicionar uma linguagem ao planejador é diferente de entregar um boilerplate gerável: o primeiro passo cadastra a intenção; o segundo exige fontes, adapters, dependências fixadas e testes reais.
 
 ## 1. Adicionar metadados
 
@@ -37,7 +37,7 @@ Os comandos são arrays de argumentos, não strings de shell. Os requisitos exec
 
 ## 2. Declarar capacidades e caminhos condicionais
 
-Capacidades atuais: `postgres`, `mongodb`, `redis`, `compose`, `kubernetes`, `prometheus-grafana`, `vault`. Frontend estático pode declarar `prometheus-grafana-container` para permitir monitoria via servidor de container quando Compose estiver selecionado.
+Capacidades atuais: `postgres`, `mongodb`, `redis`, `compose`, `kubernetes`, `prometheus-grafana`, `vault`, `github-actions` (primeiro adapter de CI em Express). Frontend estático pode declarar `prometheus-grafana-container` para permitir monitoria via servidor de container quando Compose estiver selecionado.
 
 Omitir uma capacidade faz o planner rejeitar uma escolha incompatível. Não copie a lista inteira sem prever e validar cada integração. `conditional_paths` contém os caminhos que só aparecem quando aquela integração é escolhida; a estrutura pode ser `app/` para Python, `internal/` para Go ou a árvore apropriada de Java, sem condicionais por linguagem no planejador.
 
@@ -54,7 +54,7 @@ cargo run -p rust-boilerplate -- doctor --template go-chi
 cargo test -p rust-boilerplate --locked
 ```
 
-O doctor exige `go` apenas nesse exemplo; o planner continua funcionando sem ele. Os comandos dependem de criar esses metadados: Go ainda não faz parte das sete stacks prontas. Para uma referência implementada, examine catalog/python-fastapi.toml, templates/python-fastapi e src/generator/integrations/python.rs.
+O doctor exige `go` apenas nesse exemplo; o planner continua funcionando sem ele. Os comandos dependem de criar esses metadados: go-chi é apenas o exemplo hipotético desta página. go-http já está pronto e possui catalog/go-http.toml, templates/go-http e src/generator/integrations/go.rs; Python oferece outra referência completa.
 
 Inclua testes com a nova estrutura e com uma opção incompatível. Existe um teste que registra uma stack em memória e demonstra a extensão sem alterar CLI ou caminhos internos do planner.
 
@@ -64,6 +64,6 @@ Acrescente fontes, configuração de runtime, comandos de build/test/lint e docu
 
 Teste ao menos a base mínima, a ausência de módulos opcionais, as integrações suportadas e a conexão com um frontend quando aplicável. Só então altere o status para `ready` e disponibilize a stack em `new`. Não basta mudar o status no TOML: new exige fontes embutidas para o ID e rejeita integrações sem adapter. Os assets ficam em `templates/<id>/`; os arquivos opcionais de Compose ficam em `@compose/`. Consulte [manutenção por agentes](manutencao-por-agentes.md).
 
-Java e Go seguirão o mesmo processo, com ferramentas próprias e seus caminhos convencionais. Não há templates dessas linguagens nem instaladores de runtimes nesta revisão.
+Java seguirá o mesmo processo. O template Go já utiliza seus caminhos convencionais e Go 1.27.3; a instalação global de seu runtime não faz parte da geração. Java/mobile permanecem nos ADRs de preparação.
 
-Os fontes compostos passam por generator/format.rs antes da publicação. JS/TS usa dprint embutido, Rust usa rustfmt; Python distribui fontes/fragmentos previamente formatados e testa suas combinações com Ruff. Novas linguagens devem definir esse contrato e um caminho no scripts/validate-generated.py, sem formatadores ou CLIs instalados globalmente.
+Os fontes compostos passam por generator/format.rs antes da publicação. JS/TS usa dprint embutido, Rust usa rustfmt e Go usa gofmt da toolchain; Python distribui fontes/fragmentos previamente formatados e testa suas combinações com Ruff. Novas linguagens devem definir esse contrato e um caminho no scripts/validate-generated.py, sem formatadores ou CLIs instalados globalmente.

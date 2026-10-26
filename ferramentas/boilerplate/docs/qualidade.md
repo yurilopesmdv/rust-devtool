@@ -56,3 +56,7 @@ Para aplicar formatação, use `cargo fmt`. Gerar a stack Rust requer rustfmt no
 ## Evoluir os templates
 
 Formatação não deve reescrever contratos de integração silenciosamente. Depois de alterar templates/fragmentos/adapters, rode os testes do pacote e `scripts/validate-generated.py`; use --minimal para as bases e --with-services com bancos de teste dedicados para persistência real. O script verifica formatação sem corrigi-la para esconder problemas.
+
+## Go
+
+Go 1.27.3 e gofmt precisam estar no PATH. Execute `go test -race ./...`, `go vet ./...`, `go mod verify` e `test -z "$(gofmt -l .)"`. Use `gofmt -w .` para corrigir explicitamente. O runner de validação também compila a API e impede mutação de go.mod/go.sum. Veja [Go e testes com PostgreSQL](go.md).

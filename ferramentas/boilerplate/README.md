@@ -2,7 +2,7 @@
 
 Pacote `rust-boilerplate`, executável `boilerplate`. Este pacote é independente de `ferramentas/devtool`: utilitários de hash/JSON continuam lá; catálogo, planejamento e integrações de projetos ficam aqui.
 
-**Disponível:** sete bases web, assistente, receitas/planos, instalação local de dependências, Node/nvm, Git/GitHub, PostgreSQL/MongoDB, Redis, Docker/Compose, Kubernetes, Prometheus/Grafana e Vault opcionais. Inclui Python/FastAPI, lint e formatação por linguagem. Cada opção desativada é omitida dos fontes, dependências e recursos.
+**Disponível:** oito bases web, assistente, receitas/planos, instalação local de dependências, Node/nvm, Git/GitHub, PostgreSQL/MongoDB, Redis, Docker/Compose, Kubernetes, Prometheus/Grafana e Vault opcionais. Inclui Python/FastAPI e Go/net/http, lint e formatação por linguagem. Go suporta PostgreSQL/Compose/Kubernetes; as demais integrações seguem as capacidades de cada stack. Cada opção desativada é omitida dos fontes, dependências e recursos.
 
 O gerador cria arquivos e instala bibliotecas quando autorizado; não inicia infraestrutura, cria cluster ou faz publicação sem escolha explícita. Veja [integrações e exemplos completos](docs/integracoes.md) e [validação e limites do ambiente](docs/validacao.md).
 
@@ -146,7 +146,7 @@ cargo run -p rust-boilerplate -- doctor --template express-ts \
 cargo run -p rust-boilerplate -- doctor --template express-ts --git --github
 ```
 
-Doctor executa somente consultas de versão dos executáveis previstos para a stack: Node/npm, Rust/Cargo ou uv para Python; vanilla usa Node/npm somente para as ferramentas de desenvolvimento. Com receita, acrescenta Docker/Compose e kubectl somente quando selecionados. `--template` precisa fazer parte da receita. Em fullstack, execute doctor para cada template se quiser conferir os dois runtimes.
+Doctor executa somente consultas de versão dos executáveis previstos para a stack: Node/npm, Rust/Cargo, uv para Python ou Go/gofmt; vanilla usa Node/npm somente para as ferramentas de desenvolvimento. Com receita, acrescenta Docker/Compose e kubectl somente quando selecionados. `--template` precisa fazer parte da receita. Em fullstack, execute doctor para cada template se quiser conferir os dois runtimes.
 
 Node é verificado contra a versão solicitada (padrão 24 ou valor da receita), usando uma versão já instalada no nvm quando necessário. Outros requisitos mostram presença/versão; não há certificação de todas as combinações de runtime. Docker é consultado com `--version` e `compose version`; kubectl com `version --client=true`. Não é verificado acesso ao daemon, cluster, bancos, Vault ou serviços de monitoria. Para planejar, nenhuma dessas ferramentas é obrigatória.
 

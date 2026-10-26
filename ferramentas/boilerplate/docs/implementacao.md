@@ -1,6 +1,6 @@
 # Plano de implementação e validação
 
-[Índice](README.md). Etapas 1–3 entregues: núcleo, assistente e geração das sete bases, instalação de dependências e Git/GitHub. As etapas de dados/cache, Kubernetes, monitoria e Vault também estão implementadas. A execução Docker/cluster depende do ambiente de destino; veja validacao.md.
+[Índice](README.md). Etapas 1–3 entregues: núcleo, assistente e geração das oito bases, instalação de dependências e Git/GitHub. As etapas de dados/cache, Kubernetes, monitoria e Vault também estão implementadas. A execução Docker/cluster depende do ambiente de destino; veja validacao.md.
 
 ## Organização interna
 

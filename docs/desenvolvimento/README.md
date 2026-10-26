@@ -4,7 +4,7 @@
 
 As tasks descrevem entregas pequenas verificáveis. P0 estabiliza o processo, P1 reduz fragilidade/manutenção manual, P2 amplia contratos e testes, P3 expande o produto. Status pendente significa proposta priorizada, não funcionalidade entregue. Implementada com run remoto pendente significa que código e validação local estão prontos, mas falta a execução no GitHub. Concluir uma task exige implementação e evidência; os demais itens continuam neste backlog.
 
-A prioridade inicial é validar de forma repetível as sete stacks existentes. Go é a próxima candidata; Java e mobile ficam em preparação. Nenhuma nova linguagem deve ser marcada ready apenas por ter uma pasta ou metadado.
+A sequência T001–T024 foi percorrida. O catálogo agora contém oito stacks, incluindo Go/net/http com PostgreSQL opcional; Java e mobile têm contratos para a próxima fase. A execução remota de CI e o smoke com daemon Docker permanecem explicitamente pendentes. Nenhuma nova linguagem deve ser marcada ready apenas por ter uma pasta ou metadado.
 
 | Task | Prioridade | Status | Entrega | Depende de |
 | --- | --- | --- | --- | --- |
@@ -40,3 +40,9 @@ Decisões de evolução: [ADR 001 — Schemas](adr/001-evolucao-de-schemas.md).
 [Política de dependências](dependencias.md).
 
 Expansões futuras: [Java/Spring](adr/002-java-spring.md) e [mobile](adr/003-mobile.md).
+
+## Revisão final local
+
+Após T024: workspace completo aprovado (65 testes Rust, mais uma fixture de subprocesso ignorada na execução normal e acionada pelo teste pai), 25 testes Python de manutenção, Ruff, Clippy, actionlint, wrapper shell e duas sessões PTY. Links dos 70 documentos válidos. Os comandos de snapshots Rust/Python/npm passaram offline sem diferenças (12/12/8 respectivamente).
+
+A evidência por aplicação/banco está nas tasks. Go passou build/race/vet, persistência real e SIGTERM; os dez casos de Unicode das APIs anteriores também passaram com serviços temporários. Nenhum push, repositório remoto ou cluster foi criado. Falta observar a execução dos jobs no GitHub e executar o smoke real de imagens em daemon descartável. As novas microentregas dos ADRs são propostas futuras, não tarefas silenciosamente incluídas nesta rodada.

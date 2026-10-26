@@ -12,7 +12,7 @@ cargo run -p rust-boilerplate -- plan minha-api --type backend --backend express
 cargo run -p rust-boilerplate -- doctor --template express-ts
 ```
 
-Para instalação no PATH e exemplos completos, consulte o [README do pacote](../README.md). As sete bases já são geráveis com `new`, incluindo instalação local de dependências quando escolhida; veja [criação e instalação](criacao-e-instalacao.md) e [Git/GitHub](git-e-github.md). A devtool continua separada e seus comandos estão no [guia dos utilitários](../../devtool/README.md).
+Para instalação no PATH e exemplos completos, consulte o [README do pacote](../README.md). As oito bases já são geráveis com `new`, incluindo instalação local de dependências quando escolhida; veja [criação e instalação](criacao-e-instalacao.md) e [Git/GitHub](git-e-github.md). A devtool continua separada e seus comandos estão no [guia dos utilitários](../../devtool/README.md).
 
 ## Distribuição
 

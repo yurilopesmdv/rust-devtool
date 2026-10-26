@@ -37,7 +37,7 @@ CI do núcleo e dos projetos gerados são camadas diferentes. O primeiro verific
 
 ## Expansão do catálogo
 
-Não é necessário acrescentar outra linguagem nesta primeira entrega: o gargalo atual é proteger as sete existentes. Go/net/http é a próxima candidata por ter servidor HTTP e ferramentas de testes/formatação na própria toolchain. A proposta está em T021 e não está implementada. PostgreSQL entra em outra microtask; MongoDB/Redis/Vault só devem ser anunciados após adapters e testes próprios. Java e mobile continuam sujeitos aos contratos de runtime, build e plataforma da sua fase.
+A revisão inicial priorizou proteger as sete bases existentes antes de acrescentar linguagens. Após os gates locais, T021/T022 entregaram Go/net/http e PostgreSQL opcional, com build, race, vet, persistência e shutdown reais. Go não anuncia MongoDB/Redis/Vault/monitoria. Java e mobile têm ADRs próprios em T024; suas bases ainda não foram implementadas.
 
 ## Referências utilizadas
 

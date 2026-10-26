@@ -1,6 +1,6 @@
 # Catálogo e arquitetura
 
-[Índice](README.md). As sete bases já têm fontes geráveis. As integrações de dados/cache/monitoria/segredos também estão implementadas nos quatro backends. Compose/Kubernetes são arquivos gerados; consulte validação.md para a diferença entre validação das aplicações/configurações e execução de containers/cluster.
+[Índice](README.md). As oito bases já têm fontes geráveis. Express/Nest/Rust/Python possuem adapters de dados/cache/monitoria/segredos; Go possui PostgreSQL/Compose/Kubernetes, sem as demais integrações. Compose/Kubernetes são arquivos gerados; consulte validação.md para a diferença entre validação das aplicações/configurações e execução de containers/cluster.
 
 ## Catálogo inicial
 
@@ -14,7 +14,9 @@
 | `rust-axum` | Backend | Rust + Axum + Tokio | módulos Rust com camadas explícitas e composição no bootstrap |
 | `python-fastapi` | Backend | Python 3.13 + FastAPI + uv | routers, schemas Pydantic, services e repositories por funcionalidade |
 
-O catálogo inicial combina qualquer frontend com qualquer backend para fullstack. Os testes devem verificar as doze combinações em sua configuração mínima. Combinações com extensões entram no catálogo somente quando possuem validação própria.
+| `go-http` | Backend | Go 1.27.3 + net/http | cmd/api, internal/httpapi, services e repositories opcionais |
+
+O catálogo inicial combina qualquer frontend com qualquer backend para fullstack. Os testes devem verificar as quinze combinações em sua configuração mínima. Combinações com extensões entram no catálogo somente quando possuem validação própria.
 
 ## Estrutura backend padronizada
 
