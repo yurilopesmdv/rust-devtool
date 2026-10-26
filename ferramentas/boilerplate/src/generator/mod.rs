@@ -15,7 +15,31 @@ use crate::{
     planner,
 };
 
+#[derive(Default)]
+struct Progress {
+    stage: &'static str,
+    created: Vec<std::path::PathBuf>,
+}
+
 pub fn run(args: NewArgs, catalog: &Catalog) -> Result<(), Error> {
+    let as_json = args.plan.json;
+    let mut progress = Progress {
+        stage: "validation",
+        ..Progress::default()
+    };
+    let result = run_inner(args, catalog, &mut progress);
+    if as_json && let Err(error) = &result {
+        // Never serialize diagnostics/arguments: external tools and recipes can contain secrets.
+        println!("{}", serde_json::to_string_pretty(&serde_json::json!({
+            "schema_version": 1, "ok": false, "created": progress.created,
+            "error": {"code": format!("{}_failed", progress.stage), "stage": progress.stage,
+                "exit_code": error.code, "kind": match error.code {2 => "input", 124 => "timeout", 130 | 143 => "cancelled", _ => "operational"}}
+        })).map_err(|e| Error::operation(e.to_string()))?);
+    }
+    result
+}
+
+fn run_inner(args: NewArgs, catalog: &Catalog, progress: &mut Progress) -> Result<(), Error> {
     let interactive = wizard::interactive(&args);
     if args.plan.json && !args.plan.non_interactive {
         return Err(Error::input("new --json exige --non-interactive"));
@@ -30,6 +54,7 @@ pub fn run(args: NewArgs, catalog: &Catalog) -> Result<(), Error> {
     vcs::validate(&args, split)?;
     let cwd = std::env::current_dir().map_err(|e| Error::operation(e.to_string()))?;
     let plan = planner::build(recipe, catalog, &cwd)?;
+    progress.stage = "render";
     let projects = render::render(&plan, catalog)?;
     if interactive {
         for project in &projects {
@@ -54,7 +79,10 @@ pub fn run(args: NewArgs, catalog: &Catalog) -> Result<(), Error> {
             "Docker não encontrado no PATH. Somente os arquivos serão gerados; instale/configure Docker no WSL antes de executar Compose."
         );
     }
+    progress.stage = "publish";
     let roots = writer::publish(&projects)?;
+    progress.created.clone_from(&roots);
+    progress.stage = "git";
     if args.git == Decision::Yes {
         vcs::init(&roots)?;
     }
@@ -71,6 +99,7 @@ pub fn run(args: NewArgs, catalog: &Catalog) -> Result<(), Error> {
         )?,
         _ => false,
     };
+    progress.stage = "install";
     if install {
         let needs_node = plan.applications.iter().any(|app| {
             catalog
@@ -130,9 +159,10 @@ pub fn run(args: NewArgs, catalog: &Catalog) -> Result<(), Error> {
             }
         })
         .collect();
+    progress.stage = "github";
     vcs::github(&args, &roots, &names)?;
     if args.plan.json {
-        println!("{}", serde_json::to_string_pretty(&serde_json::json!({"created": roots, "installed": install, "git": args.git == Decision::Yes})).map_err(|e| Error::operation(e.to_string()))?);
+        println!("{}", serde_json::to_string_pretty(&serde_json::json!({"schema_version": 1, "ok": true, "created": roots, "installed": install, "git": args.git == Decision::Yes})).map_err(|e| Error::operation(e.to_string()))?);
     } else {
         println!("Consulte README.md e AGENTS.md nas aplicações. Nenhum serviço foi iniciado.");
     }

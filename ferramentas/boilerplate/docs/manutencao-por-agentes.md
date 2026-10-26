@@ -50,3 +50,9 @@ Configuração e bootstrap Node ficam em integrations/node/config-env.ts, config
 O módulo Rust de exemplo usa integrations/rust/example-service.rs e seus fragmentos de controller/escrita. Use os slots // @boilerplate:* com o helper verificado, sem localizar/recortar funções pelo texto de uma assinatura. Os arquivos só são analisados como Rust completo depois da composição e formatação.
 
 Para snapshots Cargo, use o [atualizador e seus modos](locks.md). O manifesto vem do mesmo compositor do gerador; mudanças de versões/features devem passar pela checagem das 12 combinações.
+
+## Resultado operacional em JSON
+
+Use `new --json --non-interactive` com decisões explícitas de instalação/Git/GitHub. Depois do parsing dos argumentos, sucesso e falha produzem um único documento em stdout com `schema_version: 1`, `ok` e `created` (raízes efetivamente publicadas). Sucesso mantém `installed` e `git`. Falha inclui `error.code` (`<stage>_failed`), `error.stage` (`validation`, `render`, `publish`, `git`, `install`, `github`), `error.exit_code` e `error.kind` (`input`, `operational`, `timeout`, `cancelled`).
+
+A lista `created` não significa que instalação/Git/GitHub foram concluídos. Em falhas após publicação, entre nos diretórios preservados e retome a etapa pelo README; não repita new no mesmo destino. Diagnósticos e saída dos processos ficam em stderr; o envelope omite mensagens/argumentos de terceiros para evitar transportar credenciais. Caminhos locais aparecem em `created`. Erros do parser (flags inválidas), falhas ao carregar o catálogo e encerramento forçado antes da publicação do resultado continuam sujeitos ao protocolo do processo, sem garantia de envelope. Verifique também o exit code.

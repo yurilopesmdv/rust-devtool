@@ -22,7 +22,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T012](tasks/T012.md) | P1 | concluída localmente; CI remota pendente | Gerar snapshots de locks Python por comando | T004 |
 | [T013](tasks/T013.md) | P1 | concluída | Atualizar locks npm base e superset | T003 |
 | [T014](tasks/T014.md) | P1 | concluída | Timeout e interrupção de processos externos | T001 |
-| [T015](tasks/T015.md) | P1 | pendente | Contrato JSON para falhas operacionais | T001 |
+| [T015](tasks/T015.md) | P1 | concluída | Contrato JSON para falhas operacionais | T001 |
 | [T016](tasks/T016.md) | P2 | pendente | Uniformizar limites Unicode dos contratos HTTP | T003, T004, T005 |
 | [T017](tasks/T017.md) | P2 | pendente | Especificar evolução de schemas | T006 |
 | [T018](tasks/T018.md) | P2 | pendente | Smoke test das imagens Docker | T003, T004, T005 |
