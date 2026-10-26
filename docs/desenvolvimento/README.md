@@ -29,7 +29,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T019](tasks/T019.md) | P2 | concluída localmente; CI remota pendente | Teste automatizado do assistente em PTY | T001 |
 | [T020](tasks/T020.md) | P2 | concluída | Política de atualização de dependências | T002 |
 | [T021](tasks/T021.md) | P3 | concluída localmente; CI remota pendente | Go: base HTTP mínima | T003, T004, T005, T008 |
-| [T022](tasks/T022.md) | P3 | pendente | Go: adapter PostgreSQL opcional | T021, T006 |
+| [T022](tasks/T022.md) | P3 | concluída localmente; Docker/CI pendentes | Go: adapter PostgreSQL opcional | T021, T006 |
 | [T023](tasks/T023.md) | P3 | pendente | CI opcional nos projetos gerados | T003, T004, T005 |
 | [T024](tasks/T024.md) | P3 | pendente | Preparar contratos para Java e mobile | T020 |
 

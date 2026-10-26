@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        stack: [vanilla-js, react-vite-ts, next-ts, express-ts, nest-ts, rust-axum, python-fastapi]
+        stack: [vanilla-js, react-vite-ts, next-ts, express-ts, nest-ts, rust-axum, python-fastapi, go-http]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -35,6 +35,12 @@ jobs:
           persist-credentials: false
       - name: Prepare Rust
         run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Prepare Go formatter
+        if: matrix.stack == 'go-http'
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
       - name: Build, start and stop generated image
         env:
           TEMPLATE_ID: ${{ matrix.stack }}
@@ -333,11 +339,23 @@ jobs:
         run: python3 ferramentas/boilerplate/scripts/update_rust_locks.py --check
 
   generated-go:
-    name: Generated Go (minimal)
+    name: Generated Go (minimal and PostgreSQL)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       GOTOOLCHAIN: local
+      POSTGRES_TEST_URL: postgresql://app:test-only@127.0.0.1:5432/app
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -352,3 +370,5 @@ jobs:
           cache: false
       - name: Validate generated API
         run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks go-http
+      - name: Validate PostgreSQL adapter
+        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --stacks go-http

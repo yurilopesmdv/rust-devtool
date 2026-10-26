@@ -21,6 +21,7 @@ FILES = {
     "express-ts": "/app/dist/server.js",
     "nest-ts": "/app/dist/main.js",
     "rust-axum": "/app/server",
+    "go-http": "/app/server",
     "python-fastapi": "/app/app/main.py",
     "next-ts": "/app/server.js",
     "react-vite-ts": "/usr/share/nginx/html/index.html",

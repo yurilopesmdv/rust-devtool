@@ -9,7 +9,7 @@ architecture = "layered"
 status = "ready"
 package_manager = "go"
 paths = ["cmd/api/", "internal/config/", "internal/httpapi/", "internal/modules/example/", "docs/"]
-capabilities = []
+capabilities = ["postgres", "compose", "kubernetes"]
 module_systems = []
 install = ["go", "mod", "download"]
 
@@ -22,3 +22,7 @@ purpose = "Go 1.27.3; instalar e executar a aplicação no Linux/WSL"
 command = "gofmt"
 args = ["-h"]
 purpose = "Formatar fontes Go antes da publicação; acompanha a toolchain"
+
+[conditional_paths]
+compose = ["Dockerfile", ".dockerignore"]
+postgres = ["internal/infrastructure/database/", "internal/modules/example/repositories/", "cmd/prepare/", "migrations/", "go.sum"]

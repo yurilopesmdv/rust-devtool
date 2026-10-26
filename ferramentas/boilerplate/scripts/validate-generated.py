@@ -35,13 +35,23 @@ def validate_app(app, template, args, env):
             run(["npm", "run", "db:prepare"], app, env)
         run(["npm", "test"], app, env)
     elif manager == "go":
+        snapshots = {
+            name: (app / name).read_bytes() if (app / name).exists() else None
+            for name in ["go.mod", "go.sum"]
+        }
         run(["go", "mod", "download"], app, env)
         run(["go", "mod", "verify"], app, env)
         if run(["gofmt", "-l", "."], app, env).strip():
             raise RuntimeError("Fontes Go fora do formato")
+        if args.with_services and env.get("DATABASE_URL"):
+            run(["go", "run", "./cmd/prepare"], app, env)
         run(["go", "test", "-race", "./..."], app, env)
         run(["go", "vet", "./..."], app, env)
         run(["go", "build", "-buildvcs=false", "-o", "bin/api", "./cmd/api"], app, env)
+        for name, content in snapshots.items():
+            actual = (app / name).read_bytes() if (app / name).exists() else None
+            if actual != content:
+                raise RuntimeError(f"Validação Go alterou snapshot {name}")
     elif manager == "cargo":
         run(["cargo", "fmt", "--check"], app, env)
         run(["cargo", "test", "--locked"], app, env)
@@ -100,12 +110,11 @@ def main():
     env = os.environ.copy()
     if args.offline:
         env.update(
-            CARGO_NET_OFFLINE="true", npm_config_offline="true", UV_OFFLINE="true"
+            CARGO_NET_OFFLINE="true",
+            npm_config_offline="true",
+            UV_OFFLINE="true",
+            GOPROXY="off",
         )
-    if args.with_services:
-        for key in ["POSTGRES_TEST_URL", "MONGODB_TEST_URL", "REDIS_TEST_URL"]:
-            if not env.get(key):
-                parser.error(f"Defina {key} para um serviço de TESTE dedicado")
     run(["cargo", "build", "-p", "rust-boilerplate", "--locked"], repo, env)
     metadata = json.loads(
         run(["cargo", "metadata", "--no-deps", "--format-version=1"], repo, env)
@@ -120,6 +129,16 @@ def main():
         for t in templates
         if t["status"] == "ready" and (not selected or t["id"] in selected)
     ]
+    if args.with_services:
+        for capability, key in [
+            ("postgres", "POSTGRES_TEST_URL"),
+            ("mongodb", "MONGODB_TEST_URL"),
+            ("redis", "REDIS_TEST_URL"),
+        ]:
+            if any(
+                capability in template["capabilities"] for template in templates
+            ) and not env.get(key):
+                parser.error(f"Defina {key} para um serviço de TESTE dedicado")
     if any(t["package_manager"] == "npm" for t in templates) and not run(
         ["node", "--version"], repo, env
     ).strip().startswith("v24."):

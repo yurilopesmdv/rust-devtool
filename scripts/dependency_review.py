@@ -36,7 +36,14 @@ def review(paths):
                 ]
             ):
                 scopes.add("rust-templates")
+    if any("go-http/" in path or "integrations/go" in path for path in paths):
+        scopes.add("go-templates")
     checks = {
+        "go-templates": [
+            "python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks go-http",
+            "python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --stacks go-http",
+            "Revisar go.mod/go.sum, advisories e licenças Go",
+        ],
         "workspace": [
             "sh scripts/check-workspace.sh",
             "Revisar advisories e licenças do grafo Cargo",

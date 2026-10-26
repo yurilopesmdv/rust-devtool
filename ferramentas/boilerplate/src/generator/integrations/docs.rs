@@ -51,6 +51,8 @@ pub fn write(
             .is_some_and(|s| s != "rust-axum");
         if r.backend.template.as_deref() == Some("python-fastapi") {
             text.push_str("Na pasta da API: `uv run --locked --env-file .env python -m app.infrastructure.prepare`. Em Compose: `docker compose --env-file infra/.env run --rm api python -m app.infrastructure.prepare`. Python usa `uv run --locked --env-file .env pytest` para persistência real; sem URLs de teste os testes de integração são pulados. FastAPI retorna 422 para payload inválido.\n\n");
+        } else if r.backend.template.as_deref() == Some("go-http") {
+            text.push_str("Na pasta da API: `go run ./cmd/prepare`. Exporte DATABASE_URL no ambiente. Em Compose: `docker compose --env-file infra/.env run --rm api /app/prepare`. Testes com DATABASE_URL habilitam persistência real; use somente banco descartável.\n\n");
         } else if node {
             text.push_str("Na pasta da API: `npm run build && npm run db:prepare`. Em Compose: `docker compose --env-file infra/.env run --rm api npm run db:prepare` (imagem já compilada).\n\n");
         } else {

@@ -29,6 +29,7 @@ O relatório JSON distingue workspace, actions e os três grupos de templates; i
 | npm templates | Manifestos base + locks base/superset | npm ci sem ignorar peers, lint/format/typecheck/build/test, ESM/CommonJS quando suportado e adapters afetados |
 | uv templates | pyproject + 12 snapshots + cópia base | uv sync --locked, Ruff, pytest e variantes com Vault/adapters afetados |
 | Rust templates | Manifesto + 12 snapshots | cargo --locked, fmt/test/Clippy e adapters afetados |
+| Go templates | go.mod/go.sum do adapter | go mod verify, gofmt/test -race/vet/build, base sem driver e PostgreSQL real |
 | Actions | SHA imutável com release legível no comentário | release oficial, permissões mínimas, actionlint e execução remota |
 | Imagens | tags/digests e documentação de upgrade | origem oficial, release, arquitetura Linux e smoke no daemon descartável |
 

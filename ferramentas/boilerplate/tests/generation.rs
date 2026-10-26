@@ -619,3 +619,35 @@ fn go_generates_with_every_frontend_in_both_layouts() {
         }
     }
 }
+
+#[test]
+fn go_postgres_is_optional_and_uses_repository_pool_and_preparation() {
+    let (_temp, minimal) = create("go-http", ProjectType::Backend, false);
+    assert!(!minimal[0].files.contains_key(&PathBuf::from("go.sum")));
+    assert!(
+        !minimal[0]
+            .files
+            .keys()
+            .any(|path| path.to_string_lossy().contains("repositories"))
+    );
+    let temp = Temp::new();
+    let catalog = Catalog::embedded().unwrap();
+    let mut r = recipe("go-http", ProjectType::Backend);
+    r.backend.database = Some(Database::Postgres);
+    r.backend.database_location = Some(Location::Local);
+    r.infrastructure.containers = Some(Containers::Compose);
+    r.infrastructure.kubernetes = Some(Kubernetes::Manifests);
+    let plan = planner::build(r, &catalog, &temp.0).unwrap();
+    let projects = render::render(&plan, &catalog).unwrap();
+    let files = &projects[0].files;
+    assert!(files[&PathBuf::from("go.mod")].contains("pgx/v5 v5.11.0"));
+    assert!(files.contains_key(&PathBuf::from("go.sum")));
+    assert!(
+        files[&PathBuf::from("internal/modules/example/repositories/repository.go")]
+            .contains("SELECT message")
+    );
+    assert!(!files[&PathBuf::from("internal/config/config.go")].contains("SELECT"));
+    assert!(files[&PathBuf::from("cmd/api/main.go")].contains("defer pool.Close()"));
+    assert!(files[&PathBuf::from("Dockerfile")].contains("/app/prepare"));
+    assert!(files[&PathBuf::from("infra/kubernetes/jobs/prepare.yaml")].contains("/app/prepare"));
+}
