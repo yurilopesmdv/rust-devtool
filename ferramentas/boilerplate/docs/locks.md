@@ -24,6 +24,22 @@ As dependências diretas do template e adapters usam versões exatas. O comando 
 
 Duas checagens consecutivas com os mesmos manifestos/locks/cache devem produzir a mesma saída. Uma atualização legítima pode mudar o grafo; geração determinística não significa que atualizar dependências dispensa revisão.
 
-## Python e npm
+## Python: 12 combinações, 24 variantes
 
-Os locks uv e npm continuam distribuídos. Os comandos específicos de manutenção estão nas microtasks T012/T013; até sua entrega, siga a validação em projeto temporário e mantenha manifesto/lock coerentes. Não execute um instalador com versão flutuante em cada geração de aplicação.
+Requer Python 3.8+ para o script, Rust/Cargo para compor os manifestos, uv 0.13.5 e Python 3.13 para as aplicações. Prepare o interpretador com `uv python install 3.13 --no-bin`. `--offline` exige também os caches de resolução e pacotes preenchidos.
+
+```sh
+python3 ferramentas/boilerplate/scripts/update_python_locks.py --check --offline
+python3 ferramentas/boilerplate/scripts/update_python_locks.py --write
+python3 ferramentas/boilerplate/scripts/update_python_locks.py --write --upgrade
+```
+
+O example python_lock_manifests usa o mesmo compositor de generator/integrations/python.rs. O script resolve nenhum/PostgreSQL/MongoDB × cache × métricas em diretórios temporários, executa `uv sync --locked` em cada combinação e normaliza somente o nome do projeto. Vault usa as dependências já presentes na base; suas variantes compartilham esses locks.
+
+São mantidos os doze arquivos em integrations/python-locks/ e a cópia da base em templates/python-fastapi/uv.lock. `--check` não grava snapshots e retorna 1 quando há diferenças. `--write` resolve e instala todas as combinações antes de publicar; conserva o grafo existente quando compatível. `--upgrade` exige `--write` e solicita atualização explícita das transitivas. A instalação ocorre apenas nos ambientes temporários do verificador, sem iniciar serviços.
+
+Depois de alterar adapters, execute também a matriz de aplicações descrita em [Validação](validacao.md), incluindo opções com Vault. O check de locks verifica resolução/instalação; os testes das aplicações verificam comportamento.
+
+## npm
+
+Os locks npm continuam distribuídos. O comando específico está na microtask T013; até sua entrega, valide em projeto temporário e mantenha manifesto/lock coerentes. Não execute um instalador com versão flutuante em cada geração de aplicação.

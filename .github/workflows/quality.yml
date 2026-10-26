@@ -253,6 +253,31 @@ jobs:
       - name: Check local Markdown links
         run: python3 scripts/check_docs.py
 
+  python-lock-snapshots:
+    name: Python lock snapshots
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Prepare uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.13.5'
+          enable-cache: false
+
+      - name: Prepare Python
+        run: uv python install 3.13 --no-bin
+
+      - name: Check Python lock snapshots
+        run: python3 ferramentas/boilerplate/scripts/update_python_locks.py --check
+
   rust-lock-snapshots:
     name: Rust lock snapshots
     runs-on: ubuntu-24.04

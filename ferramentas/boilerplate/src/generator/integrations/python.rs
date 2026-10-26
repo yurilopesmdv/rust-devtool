@@ -1,14 +1,23 @@
 use super::*;
 
-pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> {
-    let db = r.backend.database.unwrap_or(Database::None);
-    let cache = r.backend.cache == Some(Cache::Redis);
-    let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
-    let vault = r.infrastructure.secrets == Some(Secrets::Vault);
-    let mut manifest: toml::Table = files[&prefix.join("pyproject.toml")]
+/// Shared Python dependency composition used by generation and uv lock maintenance.
+pub fn manifest(
+    source: &str,
+    db: Database,
+    cache: bool,
+    metrics: bool,
+) -> Result<toml::Table, Error> {
+    let mut manifest: toml::Table = source
         .parse()
         .map_err(|e: toml::de::Error| Error::operation(e.to_string()))?;
-    let deps = manifest["project"]["dependencies"].as_array_mut().unwrap();
+    let deps = manifest
+        .get_mut("project")
+        .and_then(toml::Value::as_table_mut)
+        .and_then(|project| project.get_mut("dependencies"))
+        .and_then(toml::Value::as_array_mut)
+        .ok_or_else(|| {
+            Error::operation("pyproject.toml precisa declarar project.dependencies como array")
+        })?;
     if db == Database::Postgres {
         deps.extend(
             ["psycopg[binary]==3.3.6", "psycopg-pool==3.3.1"]
@@ -23,6 +32,20 @@ pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> 
     if metrics {
         deps.push(toml::Value::String("prometheus-client==0.26.0".into()));
     }
+    Ok(manifest)
+}
+
+pub fn apply(r: &Recipe, files: &mut Files, prefix: &Path) -> Result<(), Error> {
+    let db = r.backend.database.unwrap_or(Database::None);
+    let cache = r.backend.cache == Some(Cache::Redis);
+    let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
+    let vault = r.infrastructure.secrets == Some(Secrets::Vault);
+    let manifest = manifest(
+        source_mut(files, prefix, "pyproject.toml")?,
+        db,
+        cache,
+        metrics,
+    )?;
     insert(
         files,
         prefix,
