@@ -58,6 +58,7 @@ fn create(id: &str, role: ProjectType, runtime_compose: bool) -> (Temp, Vec<writ
 #[test]
 fn every_base_generates_sources_ignore_rules_agent_instructions_and_recipe() {
     for (id, role) in [
+        ("go-http", ProjectType::Backend),
         ("express-ts", ProjectType::Backend),
         ("nest-ts", ProjectType::Backend),
         ("rust-axum", ProjectType::Backend),
@@ -584,4 +585,37 @@ fn default_generation_is_outside_working_directory_and_split_uses_same_base() {
         plan["applications"][1]["destination"],
         home.join("projects/plataforma-api").to_str().unwrap()
     );
+}
+
+#[test]
+fn go_generates_with_every_frontend_in_both_layouts() {
+    let temp = Temp::new();
+    let catalog = Catalog::embedded().unwrap();
+    for frontend in ["vanilla-js", "react-vite-ts", "next-ts"] {
+        for layout in [Layout::Monorepo, Layout::Split] {
+            let mut r = recipe("go-http", ProjectType::Fullstack);
+            r.backend.template = Some("go-http".into());
+            r.frontend.template = Some(frontend.into());
+            r.project.layout = Some(layout);
+            if layout == Layout::Split {
+                r.project.destination = None;
+                r.project.web_dir = Some(temp.0.join("web"));
+                r.project.api_dir = Some(temp.0.join("api"));
+            }
+            let plan = planner::build(r, &catalog, &temp.0).unwrap();
+            let projects = render::render(&plan, &catalog).unwrap();
+            assert_eq!(projects.len(), if layout == Layout::Split { 2 } else { 1 });
+            assert!(projects.iter().any(|project| {
+                project
+                    .files
+                    .keys()
+                    .any(|path| path.ends_with("cmd/api/main.go"))
+            }));
+            assert!(
+                projects
+                    .iter()
+                    .all(|project| !project.files.keys().any(|path| path.ends_with("go.sum")))
+            );
+        }
+    }
 }

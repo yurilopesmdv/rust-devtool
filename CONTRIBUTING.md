@@ -72,3 +72,5 @@ Use serviços descartáveis dedicados para --with-services. Não aponte a suíte
 Revise o diff, atualize documentação/receitas afetadas e registre os comandos efetivamente executados na task. Diferencie validação local, testes com serviços e execução remota. Não conclua tasks dependentes por antecipação, nem marque uma stack ready sem seus checks. Uma correção comum não exige executar todos os serviços e todas as linguagens: amplie a validação conforme o impacto da mudança.
 
 Ao alterar dependências Rust distribuídas, execute o [check dos snapshots](ferramentas/boilerplate/docs/locks.md). O job rust-lock-snapshots usa --check, sem modificar os arquivos; sua primeira execução remota também precisa ser observada após o envio.
+
+Os testes de geração também usam gofmt da toolchain Go 1.27.3 no PATH. A CI prepara essa versão; a matriz Go executa build, testes com race e vet. Consulte [Go](ferramentas/boilerplate/docs/go.md).

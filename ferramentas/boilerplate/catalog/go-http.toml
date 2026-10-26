@@ -1,0 +1,24 @@
+id = "go-http"
+role = "backend"
+language = "Go"
+framework = "net/http"
+port = 3000
+container_port = 3000
+integration_adapter = "go-http"
+architecture = "layered"
+status = "ready"
+package_manager = "go"
+paths = ["cmd/api/", "internal/config/", "internal/httpapi/", "internal/modules/example/", "docs/"]
+capabilities = []
+module_systems = []
+install = ["go", "mod", "download"]
+
+[[requirements]]
+command = "go"
+args = ["version"]
+purpose = "Go 1.27.3; instalar e executar a aplicação no Linux/WSL"
+
+[[requirements]]
+command = "gofmt"
+args = ["-h"]
+purpose = "Formatar fontes Go antes da publicação; acompanha a toolchain"

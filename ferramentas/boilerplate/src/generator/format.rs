@@ -37,6 +37,33 @@ pub fn apply(files: &mut Files) -> Result<(), Error> {
                     }
                 }
             }
+            Some("go") => {
+                let mut child = Command::new("gofmt")
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .map_err(|e| {
+                        Error::operation(format!("gofmt necessário; instale Go 1.27.3: {e}"))
+                    })?;
+                child
+                    .stdin
+                    .take()
+                    .unwrap()
+                    .write_all(source.as_bytes())
+                    .map_err(|e| Error::operation(e.to_string()))?;
+                let output = child
+                    .wait_with_output()
+                    .map_err(|e| Error::operation(e.to_string()))?;
+                if !output.status.success() {
+                    return Err(Error::operation(format!(
+                        "gofmt rejeitou {}",
+                        path.display()
+                    )));
+                }
+                *source = String::from_utf8(output.stdout)
+                    .map_err(|e| Error::operation(e.to_string()))?;
+            }
             Some("rs") => {
                 static CACHE: OnceLock<Mutex<BTreeMap<String, String>>> = OnceLock::new();
                 let cache = CACHE.get_or_init(|| Mutex::new(BTreeMap::new()));

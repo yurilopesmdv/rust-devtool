@@ -70,7 +70,13 @@ fn minimal_plan_has_no_optional_services_or_writes() {
 fn all_frontend_backend_pairs_are_plannable() {
     let temp = Temp::new();
     for frontend in ["vanilla-js", "react-vite-ts", "next-ts"] {
-        for backend in ["express-ts", "nest-ts", "rust-axum", "python-fastapi"] {
+        for backend in [
+            "express-ts",
+            "nest-ts",
+            "rust-axum",
+            "python-fastapi",
+            "go-http",
+        ] {
             let mut r = recipe();
             r.project.kind = Some(ProjectType::Fullstack);
             r.project.layout = Some(Layout::Monorepo);

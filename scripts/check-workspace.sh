@@ -12,7 +12,7 @@ usage() {
         '  --offline  Exige dependências já presentes no cache Cargo.' \
         '  --help     Mostra esta ajuda sem executar Cargo.' \
         '' \
-        'Requisitos: Rust/Cargo e componentes rustfmt e clippy no WSL/Linux.' \
+        'Requisitos: Rust/Cargo, rustfmt, clippy e gofmt (Go 1.27.3) no WSL/Linux.' \
         'Não instala ferramentas nem inicia serviços.' \
         'Fixtures dos testes ficam em diretórios temporários.'
 }

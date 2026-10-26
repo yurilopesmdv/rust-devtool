@@ -34,6 +34,14 @@ def validate_app(app, template, args, env):
         if args.with_services and template["role"] == "backend":
             run(["npm", "run", "db:prepare"], app, env)
         run(["npm", "test"], app, env)
+    elif manager == "go":
+        run(["go", "mod", "download"], app, env)
+        run(["go", "mod", "verify"], app, env)
+        if run(["gofmt", "-l", "."], app, env).strip():
+            raise RuntimeError("Fontes Go fora do formato")
+        run(["go", "test", "-race", "./..."], app, env)
+        run(["go", "vet", "./..."], app, env)
+        run(["go", "build", "-buildvcs=false", "-o", "bin/api", "./cmd/api"], app, env)
     elif manager == "cargo":
         run(["cargo", "fmt", "--check"], app, env)
         run(["cargo", "test", "--locked"], app, env)
@@ -128,7 +136,16 @@ def main():
         for template in templates:
             backend = template["role"] == "backend"
             for database in (
-                ["postgres", "mongodb"] if backend and not args.minimal else ["none"]
+                (
+                    [
+                        db
+                        for db in ["postgres", "mongodb"]
+                        if db in template["capabilities"]
+                    ]
+                    or ["none"]
+                )
+                if backend and not args.minimal
+                else ["none"]
             ):
                 name = (
                     template["id"]
@@ -158,37 +175,30 @@ def main():
                     "--non-interactive",
                 ]
                 if backend and not args.minimal:
-                    command.extend(
-                        [
-                            "--database",
-                            database,
-                            "--database-location",
-                            "local",
-                            "--cache",
-                            "redis",
-                            "--cache-location",
-                            "local",
-                            "--containers",
-                            "compose",
-                            "--kubernetes",
-                            "manifests",
-                            "--monitoring",
-                            "prometheus-grafana",
-                            "--secrets",
-                            "vault",
-                            "--vault-location",
-                            "local",
-                        ]
-                    )
+                    capabilities = template["capabilities"]
+                    if database != "none":
+                        command.extend(
+                            ["--database", database, "--database-location", "local"]
+                        )
+                    for capability, flags in [
+                        ("redis", ["--cache", "redis", "--cache-location", "local"]),
+                        ("compose", ["--containers", "compose"]),
+                        ("kubernetes", ["--kubernetes", "manifests"]),
+                        ("prometheus-grafana", ["--monitoring", "prometheus-grafana"]),
+                        ("vault", ["--secrets", "vault", "--vault-location", "local"]),
+                    ]:
+                        if capability in capabilities:
+                            command.extend(flags)
                 run(command, root, env)
                 app_env = env.copy()
-                if args.with_services and backend:
+                if args.with_services and backend and database != "none":
                     app_env["DATABASE_URL"] = env[
                         "POSTGRES_TEST_URL"
                         if database == "postgres"
                         else "MONGODB_TEST_URL"
                     ]
-                    app_env["REDIS_URL"] = env["REDIS_TEST_URL"]
+                    if "redis" in template["capabilities"]:
+                        app_env["REDIS_URL"] = env["REDIS_TEST_URL"]
                 validate_app(app, template, args, app_env)
                 if (app / "compose.yaml").exists() and shutil.which("docker"):
                     clean = env.copy()

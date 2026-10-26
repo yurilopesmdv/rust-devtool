@@ -7,7 +7,7 @@ use crate::{
 };
 use std::{collections::BTreeMap, path::PathBuf};
 
-const GITIGNORE: &str = "node_modules/\ndist/\nbuild/\n.next/\ntarget/\ncoverage/\n*.log\n*.tsbuildinfo\n.venv/\n__pycache__/\n*.py[cod]\n.pytest_cache/\n.ruff_cache/\n.env\n.env.*\n!.env.example\n.DS_Store\n.vscode/\n.idea/\n";
+const GITIGNORE: &str = "node_modules/\ndist/\nbuild/\n.next/\ntarget/\ncoverage/\nbin/\n*.log\n*.tsbuildinfo\n.venv/\n__pycache__/\n*.py[cod]\n.pytest_cache/\n.ruff_cache/\n.env\n.env.*\n!.env.example\n.DS_Store\n.vscode/\n.idea/\n";
 
 fn put(files: &mut BTreeMap<PathBuf, String>, path: PathBuf, content: String) -> Result<(), Error> {
     if !super::writer::safe_path(&path) {
@@ -274,6 +274,7 @@ fn agent_rules(name: &str, manager: &str) -> String {
         "uv" => {
             "uv run --locked ruff check . && uv run --locked ruff format --check . && uv run --locked pytest"
         }
+        "go" => "go test ./... && go vet ./... && test -z \"$(gofmt -l .)\"",
         "cargo" => {
             "cargo fmt --check && cargo test --locked && cargo clippy --all-targets -- -D warnings"
         }
@@ -291,6 +292,9 @@ fn app_readme(name: &str, template: &str, manager: &str, web_port: u16, compose:
         }
         "uv" => {
             "```sh\nuv sync --locked\ncp .env.example .env\nuv run --locked ruff check .\nuv run --locked ruff format --check .\nuv run --locked pytest\nuv run --locked --env-file .env uvicorn app.main:create_app --factory --host 0.0.0.0 --port 3000 --reload\n```\n\nRequer uv (veja https://docs.astral.sh/uv/getting-started/installation/). uv verifica/obtém Python 3.13 e cria .venv local, sem instalar bibliotecas no Python do sistema. Use uv run --locked ruff format . para formatar. /docs oferece OpenAPI/Swagger.\n"
+        }
+        "go" => {
+            "```sh\ngo version\ngo mod download\ngo test ./...\ngo vet ./...\ntest -z \"$(gofmt -l .)\"\ngo run ./cmd/api\n```\n\nRequer Go 1.27.3 (Linux/WSL). A base usa apenas a biblioteca padrão; sem dependências externas não há go.sum. Quando houver dependências, versione go.mod/go.sum e use go mod verify. Variáveis são lidas do ambiente do processo; .env.example é referência, não há carregador de .env implícito.\n"
         }
         "cargo" => {
             "```sh\ncargo fetch\ncargo fmt\ncargo test\ncargo run\n```\n\nVersione Cargo.lock após a instalação.\n"

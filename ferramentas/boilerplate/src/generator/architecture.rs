@@ -8,6 +8,9 @@ pub fn guide(template: &Template) -> String {
         Some("node-express") => {
             "src/\n  config/                         # ambiente e validação\n  infrastructure/database/        # conexão, disponibilidade e preparação\n  http/                           # rotas e middlewares globais\n  modules/example/\n    controllers/                  # HTTP/validação\n    services/                     # regras e coordenação do cache\n    repositories/                 # consultas SQL/driver Mongo\n"
         }
+        Some("go-http") => {
+            "cmd/api/main.go                   # composição, sinais e shutdown\ninternal/\n  config/config.go                 # ambiente validado\n  httpapi/router.go                # rotas, CORS, health/readiness\n  modules/example/\n    controller.go                  # protocolo HTTP\n    service.go                     # caso de uso\n    repositories/                  # somente quando banco selecionado\n"
+        }
         Some("python-fastapi") => {
             "app/\n  main.py                         # fábrica FastAPI, CORS e routers\n  config.py                       # ambiente e segredos por arquivo\n  infrastructure/\n    lifecycle.py                  # lifespan: abre/fecha recursos\n    database.py                   # conexão e readiness\n    schema.py                     # preparação explícita do exemplo\n    cache.py                      # cliente Redis\n  modules/example/\n    router.py                     # HTTP e Depends\n    schemas.py                    # contratos Pydantic de entrada/saída\n    service.py                    # caso de uso e dependências por request\n    repository.py                 # consultas parametrizadas/driver Mongo\n"
         }

@@ -62,6 +62,12 @@ jobs:
       - name: Test validation wrapper
         run: sh scripts/tests/check-workspace.sh
 
+      - name: Prepare Go formatter for generation tests
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+
       - name: Check workspace
         run: sh scripts/check-workspace.sh
 
@@ -325,3 +331,24 @@ jobs:
 
       - name: Check Rust lock snapshots
         run: python3 ferramentas/boilerplate/scripts/update_rust_locks.py --check
+
+  generated-go:
+    name: Generated Go (minimal)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Prepare Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Validate generated API
+        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks go-http
