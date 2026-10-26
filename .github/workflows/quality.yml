@@ -65,6 +65,9 @@ jobs:
       - name: Check workspace
         run: sh scripts/check-workspace.sh
 
+      - name: Exercise interactive wizard in PTY
+        run: python3 ferramentas/boilerplate/scripts/wizard_pty.py --binary target/debug/boilerplate
+
   generated-node:
     name: Generated Node (${{ matrix.stack }}, ${{ matrix.modules }})
     runs-on: ubuntu-24.04

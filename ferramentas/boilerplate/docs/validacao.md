@@ -80,3 +80,13 @@ python3 ferramentas/boilerplate/scripts/docker_smoke.py --disposable-daemon --st
 As sete bases web são aceitas por --stack. O teste gera sem instalar no host/Git/GitHub, constrói a imagem mínima, verifica UID não root e arquivo principal, publica uma porta somente no loopback e aguarda /ready (APIs) ou / (frontends). Depois envia stop e rejeita OOM/SIGKILL. Nomes e labels são exclusivos por execução; finally remove somente o container e tag próprios, sem prune ou remoção de volumes. Imagens base e cache de build podem permanecer no daemon de teste. Não execute contra um daemon de produção.
 
 No workflow Quality, a opção manual docker_smoke é false por padrão e habilita uma matriz separada em runners descartáveis. Builds precisam de acesso aos registries, rede e espaço; o limite é 35 minutos por stack. A validação local do runner cobre cleanup simulado em sucesso/falha; a execução real das imagens permanece pendente porque o ambiente de desenvolvimento não possui daemon disponível.
+
+## Assistente interativo em PTY
+
+Após `cargo build -p rust-boilerplate --locked`, execute:
+
+```sh
+python3 ferramentas/boilerplate/scripts/wizard_pty.py --binary target/debug/boilerplate
+```
+
+O teste Linux/WSL abre um terminal real, usa HOME temporário e PATH sem instaladores, verifica recuperação de escolhas inválidas, aceita o destino HOME/projects e cria vanilla sem instalação/Git. Uma segunda sessão recusa a confirmação: código 130, nenhum destino ou staging publicado. Prompts e término têm limites para evitar travar a suíte. A CI roda esse teste depois dos checks do workspace.

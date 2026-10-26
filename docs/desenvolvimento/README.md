@@ -26,7 +26,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T016](tasks/T016.md) | P2 | concluída | Uniformizar limites Unicode dos contratos HTTP | T003, T004, T005 |
 | [T017](tasks/T017.md) | P2 | concluída | Especificar evolução de schemas | T006 |
 | [T018](tasks/T018.md) | P2 | implementada; daemon pendente | Smoke test das imagens Docker | T003, T004, T005 |
-| [T019](tasks/T019.md) | P2 | pendente | Teste automatizado do assistente em PTY | T001 |
+| [T019](tasks/T019.md) | P2 | concluída localmente; CI remota pendente | Teste automatizado do assistente em PTY | T001 |
 | [T020](tasks/T020.md) | P2 | pendente | Política de atualização de dependências | T002 |
 | [T021](tasks/T021.md) | P3 | pendente | Go: base HTTP mínima | T003, T004, T005, T008 |
 | [T022](tasks/T022.md) | P3 | pendente | Go: adapter PostgreSQL opcional | T021, T006 |
