@@ -1,4 +1,5 @@
 pub mod architecture;
+pub mod ci;
 pub mod format;
 pub mod integrations;
 pub mod render;

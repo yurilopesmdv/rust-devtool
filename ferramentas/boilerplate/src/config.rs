@@ -30,6 +30,10 @@ choice!(Monitoring {
     PrometheusGrafana
 });
 choice!(Secrets { Env, Vault });
+choice!(Ci {
+    None,
+    GithubActions
+});
 
 choice!(ModuleSystem { Esm, Commonjs });
 
@@ -79,6 +83,7 @@ pub struct Backend {
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Infrastructure {
+    pub ci: Option<Ci>,
     pub frontend_origin: Option<String>,
     pub api_url: Option<String>,
     pub containers: Option<Containers>,

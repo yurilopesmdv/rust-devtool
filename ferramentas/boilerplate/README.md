@@ -173,3 +173,5 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atual](docs/arquitetura-do-pacote.md) e a [especificação completa](docs/README.md). A geração web e seus adapters estão implementados. A construção/execução das imagens e o deploy em cluster não foram realizados neste ambiente; consulte as [evidências de validação](docs/validacao.md). Mobile, Java e outras stacks ficam para evolução do catálogo.
 
 Go também está disponível: [API net/http, requisitos e validação](docs/go.md).
+
+[CI opcional nos projetos Express](docs/ci.md): --ci github-actions, sem publicação/deploy.

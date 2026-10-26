@@ -309,6 +309,8 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     }
     r.backend.database = Some(database);
     r.backend.cache = Some(cache);
+    let ci = r.infrastructure.ci.unwrap_or(Ci::None);
+    r.infrastructure.ci = Some(ci);
     r.infrastructure.containers = Some(containers);
     r.infrastructure.kubernetes = Some(kubernetes);
     r.infrastructure.monitoring = Some(monitoring);
@@ -397,6 +399,7 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     let mut integrations = Vec::new();
     let mut omitted = Vec::new();
     for (key, enabled) in [
+        ("github-actions", ci == Ci::GithubActions),
         ("postgres", database == Database::Postgres),
         ("mongodb", database == Database::Mongodb),
         ("redis", cache == Cache::Redis),
@@ -414,9 +417,13 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
             omitted.push(key.to_string());
         }
     }
+    require(
+        ci == Ci::None || has_api,
+        "CI GitHub Actions exige um backend compatível",
+    )?;
     for capability in &integrations {
         let targets: Vec<_> = match capability.as_str() {
-            "postgres" | "mongodb" | "redis" | "vault" => selected
+            "postgres" | "mongodb" | "redis" | "vault" | "github-actions" => selected
                 .iter()
                 .filter(|(t, _)| t.role == ProjectType::Backend)
                 .collect(),
@@ -449,6 +456,14 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     for dir in infra_roots {
         if containers == Containers::Compose {
             infrastructure_paths.push(dir.join("compose.yaml"));
+        }
+        if ci == Ci::GithubActions
+            && (!split
+                || selected
+                    .iter()
+                    .any(|(t, p)| p == &dir && t.role == ProjectType::Backend))
+        {
+            infrastructure_paths.push(dir.join(".github/workflows/ci.yml"));
         }
         if kubernetes == Kubernetes::Manifests {
             infrastructure_paths.push(dir.join("infra/kubernetes/"));

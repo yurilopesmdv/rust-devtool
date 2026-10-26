@@ -321,6 +321,15 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             }
         }
     }
+    if r.infrastructure.ci.is_none() && r.backend.template.as_deref() == Some("express-ts") {
+        r.infrastructure.ci = Some(
+            if decision("Gerar CI GitHub Actions da API (sem deploy)?", false)? {
+                Ci::GithubActions
+            } else {
+                Ci::None
+            },
+        );
+    }
     Ok(r)
 }
 fn service_location(label: &str, local: bool) -> Result<Location, Error> {

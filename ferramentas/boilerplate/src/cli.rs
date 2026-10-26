@@ -88,6 +88,9 @@ pub struct PlanArgs {
     pub cache_location: Option<Location>,
     #[arg(long, value_enum)]
     pub containers: Option<Containers>,
+    /// CI opcional; primeira implementação para Express, sem deploy/publicação.
+    #[arg(long, value_enum)]
+    pub ci: Option<Ci>,
     #[arg(long, value_enum)]
     pub kubernetes: Option<Kubernetes>,
     #[arg(long, value_enum)]
@@ -148,6 +151,7 @@ impl PlanArgs {
         apply!(r.backend.cache, self.cache);
         apply!(r.backend.cache_location, self.cache_location);
         apply!(r.infrastructure.containers, self.containers);
+        apply!(r.infrastructure.ci, self.ci);
         apply!(r.infrastructure.kubernetes, self.kubernetes);
         apply!(r.infrastructure.monitoring, self.monitoring);
         apply!(r.infrastructure.secrets, self.secrets);

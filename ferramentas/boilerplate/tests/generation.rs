@@ -651,3 +651,56 @@ fn go_postgres_is_optional_and_uses_repository_pool_and_preparation() {
     assert!(files[&PathBuf::from("Dockerfile")].contains("/app/prepare"));
     assert!(files[&PathBuf::from("infra/kubernetes/jobs/prepare.yaml")].contains("/app/prepare"));
 }
+
+#[test]
+fn generated_ci_is_opt_in_and_belongs_to_the_api_repository() {
+    let temp = Temp::new();
+    let catalog = Catalog::embedded().unwrap();
+    for enabled in [false, true] {
+        for layout in [None, Some(Layout::Monorepo), Some(Layout::Split)] {
+            let mut r = recipe("express-ts", ProjectType::Backend);
+            r.infrastructure.ci = Some(if enabled { Ci::GithubActions } else { Ci::None });
+            if let Some(layout) = layout {
+                r.project.kind = Some(ProjectType::Fullstack);
+                r.project.layout = Some(layout);
+                r.frontend.template = Some("react-vite-ts".into());
+                if layout == Layout::Split {
+                    r.project.destination = None;
+                    r.project.web_dir = Some(temp.0.join("web"));
+                    r.project.api_dir = Some(temp.0.join("api"));
+                }
+            }
+            let plan = planner::build(r, &catalog, &temp.0).unwrap();
+            let projects = render::render(&plan, &catalog).unwrap();
+            let workflows: Vec<_> = projects
+                .iter()
+                .filter_map(|project| {
+                    project
+                        .files
+                        .get(&PathBuf::from(".github/workflows/ci.yml"))
+                })
+                .collect();
+            assert_eq!(workflows.len(), usize::from(enabled));
+            if enabled {
+                let workflow = workflows[0];
+                assert!(workflow.contains("npm run check"));
+                assert!(workflow.contains("contents: read"));
+                assert!(workflow.contains(if layout == Some(Layout::Monorepo) {
+                    "working-directory: 'apps/api'"
+                } else {
+                    "working-directory: '.'"
+                }));
+            }
+            for project in projects {
+                let recipe =
+                    Recipe::parse(&project.files[&PathBuf::from("boilerplate.toml")]).unwrap();
+                if recipe.project.kind == Some(ProjectType::Frontend) {
+                    assert_eq!(recipe.infrastructure.ci, Some(Ci::None));
+                }
+            }
+        }
+    }
+    let mut unsupported = recipe("nest-ts", ProjectType::Backend);
+    unsupported.infrastructure.ci = Some(Ci::GithubActions);
+    assert!(planner::build(unsupported, &catalog, &temp.0).is_err());
+}
