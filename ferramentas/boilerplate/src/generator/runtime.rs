@@ -4,18 +4,123 @@ use std::{
     process::{Command, Stdio},
 };
 
+// Serializes external operations so a termination signal belongs to one active group.
+static PROCESS_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static SIGNAL: std::sync::OnceLock<std::sync::Arc<std::sync::atomic::AtomicU8>> =
+    std::sync::OnceLock::new();
+
+fn signals() -> Result<&'static std::sync::Arc<std::sync::atomic::AtomicU8>, Error> {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicU8, Ordering},
+    };
+    if let Some(signal) = SIGNAL.get() {
+        return Ok(signal);
+    }
+    let state = Arc::new(AtomicU8::new(255));
+    for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+        let state = state.clone();
+        // SAFETY: callback performs only an atomic store and async-signal-safe default handling.
+        unsafe {
+            signal_hook::low_level::register(signal, move || {
+                if state.load(Ordering::SeqCst) == 255 {
+                    let _ = signal_hook::low_level::emulate_default_handler(signal);
+                } else {
+                    state.store(signal as u8, Ordering::SeqCst);
+                }
+            })
+        }
+        .map_err(|e| Error::operation(format!("Registrar sinais: {e}")))?;
+    }
+    let _ = SIGNAL.set(state);
+    Ok(SIGNAL.get().unwrap())
+}
+
 pub fn checked(command: &mut Command, label: &str) -> Result<(), Error> {
-    let status = command
+    let seconds = std::env::var("BOILERPLATE_COMMAND_TIMEOUT_SECONDS")
+        .ok()
+        .map(|s| s.parse::<u64>().ok().filter(|n| *n > 0))
+        .unwrap_or(Some(900))
+        .ok_or_else(|| {
+            Error::input("BOILERPLATE_COMMAND_TIMEOUT_SECONDS deve ser inteiro positivo")
+        })?;
+    checked_timeout(command, label, std::time::Duration::from_secs(seconds))
+}
+
+pub fn checked_timeout(
+    command: &mut Command,
+    label: &str,
+    timeout: std::time::Duration,
+) -> Result<(), Error> {
+    use rustix::process::{Pid, Signal, kill_process_group};
+    use std::{
+        os::unix::process::CommandExt,
+        sync::atomic::Ordering,
+        time::{Duration, Instant},
+    };
+    let _lock = PROCESS_LOCK
+        .lock()
+        .map_err(|_| Error::operation("Executor indisponível"))?;
+    let signal = signals()?;
+    signal.store(0, Ordering::SeqCst);
+    struct Reset<'a>(&'a std::sync::atomic::AtomicU8);
+    impl Drop for Reset<'_> {
+        fn drop(&mut self) {
+            self.0.store(255, Ordering::SeqCst);
+        }
+    }
+    let _reset = Reset(signal);
+    let mut child = command
         .stdin(Stdio::null())
         .stdout(Stdio::from(std::io::stderr()))
-        .status()
-        .map_err(|e| Error::operation(format!("{label}: {e}")))?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(Error::operation(format!(
-            "{label} falhou ({status}); arquivos do projeto foram preservados"
-        )))
+        .process_group(0)
+        .spawn()
+        .map_err(|e| Error::operation(format!("{label}: {e}; arquivos preservados")))?;
+    let pid = Pid::from_raw(child.id() as i32).unwrap();
+    let started = Instant::now();
+    loop {
+        let interrupted = signal.load(Ordering::SeqCst);
+        if interrupted != 0 || started.elapsed() >= timeout {
+            let _ = kill_process_group(pid, Signal::TERM);
+            let deadline = Instant::now() + Duration::from_millis(500);
+            while Instant::now() < deadline {
+                let _ = child.try_wait();
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            let _ = kill_process_group(pid, Signal::KILL);
+            let _ = child.wait();
+            return Err(Error {
+                code: if interrupted == 0 {
+                    124
+                } else {
+                    128 + interrupted
+                },
+                message: format!(
+                    "{label}: {}; arquivos preservados. Retome o comando de instalação indicado no README da aplicação, dentro do diretório do projeto.",
+                    if interrupted == 0 {
+                        "timeout"
+                    } else {
+                        "interrompido"
+                    }
+                ),
+            });
+        }
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => return Ok(()),
+            Ok(Some(status)) => {
+                return Err(Error::operation(format!(
+                    "{label} falhou ({status}); arquivos preservados; retome pelo README da aplicação"
+                )));
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(20)),
+            Err(e) => {
+                let _ = kill_process_group(pid, Signal::KILL);
+                let _ = child.wait();
+                return Err(Error::operation(format!(
+                    "{label}: {e}; arquivos preservados"
+                )));
+            }
+        }
     }
 }
 
@@ -247,4 +352,81 @@ pub fn check_git_identity(path: &Path) -> Result<(), Error> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod process_tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    #[ignore = "subprocess fixture; invoked by bounded_processes"]
+    fn probe() {
+        let path = std::env::var("BOILERPLATE_PROBE_PID").unwrap();
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 60 & echo $! > \"$1\"; wait", "probe", &path]);
+        let timeout = if std::env::var_os("BOILERPLATE_PROBE_SIGNAL").is_some() {
+            60000
+        } else {
+            200
+        };
+        let error =
+            checked_timeout(&mut command, "probe", Duration::from_millis(timeout)).unwrap_err();
+        std::process::exit(error.code.into());
+    }
+
+    #[test]
+    fn bounded_processes() {
+        use rustix::process::{Pid, Signal, kill_process};
+        for (signal, expected) in [
+            (None, 124),
+            (Some(Signal::INT), 130),
+            (Some(Signal::TERM), 143),
+        ] {
+            let path = std::env::temp_dir().join(format!(
+                "boilerplate-process-{}-{expected}",
+                std::process::id()
+            ));
+            let _ = std::fs::remove_file(&path);
+            let mut command = Command::new(std::env::current_exe().unwrap());
+            command
+                .args([
+                    "--exact",
+                    "generator::runtime::process_tests::probe",
+                    "--ignored",
+                ])
+                .env("BOILERPLATE_PROBE_PID", &path);
+            if signal.is_some() {
+                command.env("BOILERPLATE_PROBE_SIGNAL", "yes");
+            }
+            let mut child = command.spawn().unwrap();
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while !path.exists() && Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            assert!(path.exists(), "child did not start");
+            let pid: u32 = std::fs::read_to_string(&path)
+                .unwrap()
+                .trim()
+                .parse()
+                .unwrap();
+            if let Some(signal) = signal {
+                kill_process(Pid::from_raw(child.id() as i32).unwrap(), signal).unwrap();
+            }
+            loop {
+                if let Some(status) = child.try_wait().unwrap() {
+                    assert_eq!(status.code(), Some(expected));
+                    break;
+                }
+                assert!(Instant::now() < deadline, "executor hung");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
+            assert!(
+                stat.is_empty() || stat.split_whitespace().nth(2) == Some("Z"),
+                "grandchild still running"
+            );
+            std::fs::remove_file(path).unwrap();
+        }
+    }
 }

@@ -62,3 +62,9 @@ O gerador não depende de CLIs globais de JavaScript/Python para gerar arquivos.
 O middleware Express também foi verificado em ESM/CommonJS com requisições reais de JSON inválido (400) e payload grande (413), sem depender de banco para esses casos.
 
 O workflow Quality agora separa o workspace, bases mínimas npm/Python/Rust e persistência com serviços descartáveis. A validação local da T006 também verifica readiness após fechar a conexão (503) e liveness preservada (200) nas dez combinações de backend/banco, contando Express/CommonJS. A primeira execução dos jobs/imagens no GitHub ainda precisa ser observada; veja docs/desenvolvimento/tasks/T006.md na raiz do repositório.
+
+## Limites e interrupção
+
+No Linux/WSL, instalações executadas pelo gerador têm limite de 900 segundos por comando. Ajuste com `BOILERPLATE_COMMAND_TIMEOUT_SECONDS` (inteiro positivo). Timeout retorna 124; Ctrl-C retorna 130; SIGTERM retorna 143. O grupo do comando recebe TERM e, após uma tolerância curta, KILL. Os arquivos publicados permanecem: entre na aplicação e retome `npm ci`, `uv sync --locked` ou `cargo fetch --locked`, conforme seu README. Nenhum serviço é iniciado por essa etapa.
+
+O runner validate-generated.py limita cada comando a 900 segundos. A manutenção de locks limita cada resolução/instalação a 300 segundos. Timeout e Ctrl-C encerram o grupo Linux, incluindo filhos; comandos destacados voluntariamente em outra sessão não pertencem ao grupo supervisionado. Os testes usam processos falsos lentos e verificam que os filhos deixam de executar.

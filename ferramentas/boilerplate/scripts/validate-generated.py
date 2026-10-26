@@ -5,15 +5,14 @@ import argparse
 import json
 import os
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 
+from process_support import capture
+
 
 def run(command, cwd, env):
-    result = subprocess.run(
-        command, cwd=cwd, env=env, text=True, capture_output=True, check=False
-    )
+    result = capture(command, cwd, env)
     if result.returncode:
         diagnostic = (result.stdout + result.stderr)[-5000:]
         for key, value in env.items():

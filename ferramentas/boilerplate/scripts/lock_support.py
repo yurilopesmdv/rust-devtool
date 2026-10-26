@@ -1,18 +1,13 @@
 """Shared process and publication helpers for repository lock maintenance."""
 
-import subprocess
+if __package__:
+    from .process_support import capture
+else:
+    from process_support import capture
 
 
 def run(command, cwd, env):
-    result = subprocess.run(
-        command,
-        cwd=cwd,
-        env=env,
-        text=True,
-        capture_output=True,
-        check=False,
-        timeout=300,
-    )
+    result = capture(command, cwd, env, timeout=300)
     if result.returncode:
         message = (result.stdout + result.stderr)[-4000:]
         for key, value in env.items():
