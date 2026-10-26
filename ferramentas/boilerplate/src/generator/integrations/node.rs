@@ -6,13 +6,55 @@ const MONGO: &str = include_str!("../../../integrations/node/mongodb.ts");
 const REDIS: &str = include_str!("../../../integrations/node/redis.ts");
 const METRICS: &str = include_str!("../../../integrations/node/metrics.ts");
 
+/// Shared dependency composition for generation and lock maintenance.
+pub fn manifest(source: &str, db: Database, cache: bool, metrics: bool) -> Result<Value, Error> {
+    let mut package: Value =
+        serde_json::from_str(source).map_err(|e| Error::operation(e.to_string()))?;
+    if !package.is_object()
+        || !package["devDependencies"].is_object()
+        || !package["scripts"].is_object()
+    {
+        return Err(Error::operation(
+            "Manifesto Node sem objeto/scripts/devDependencies",
+        ));
+    }
+    if db != Database::None {
+        let driver = if db == Database::Postgres {
+            "pg"
+        } else {
+            "mongodb"
+        };
+        package["dependencies"][driver] = json!(if db == Database::Postgres {
+            "8.23.1"
+        } else {
+            "7.7.0"
+        });
+        if db == Database::Postgres {
+            package["devDependencies"]["@types/pg"] = json!("8.23.1");
+        }
+        package["scripts"]["db:prepare"] =
+            json!("node --env-file-if-exists=.env dist/infrastructure/database/prepare.js");
+    }
+    if cache {
+        package["dependencies"]["redis"] = json!("6.3.0");
+    }
+    if metrics {
+        package["dependencies"]["prom-client"] = json!("15.1.3");
+    }
+    Ok(package)
+}
+
 pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Result<(), Error> {
     let db = r.backend.database.unwrap_or(Database::None);
     let cache = r.backend.cache == Some(Cache::Redis);
     let metrics = r.infrastructure.monitoring == Some(Monitoring::PrometheusGrafana);
     let vault = r.infrastructure.secrets == Some(Secrets::Vault);
-    let mut package: Value = serde_json::from_str(source_mut(files, prefix, "package.json")?)
-        .map_err(|e| Error::operation(e.to_string()))?;
+    let package = manifest(
+        source_mut(files, prefix, "package.json")?,
+        db,
+        cache,
+        metrics,
+    )?;
     let mut imports = String::new();
     let mut start = String::new();
     let mut stop = String::new();
@@ -28,19 +70,6 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
     };
     insert(files, prefix, "src/config/env.ts", config);
     if db != Database::None {
-        let driver = if db == Database::Postgres {
-            "pg"
-        } else {
-            "mongodb"
-        };
-        package["dependencies"][driver] = json!(if db == Database::Postgres {
-            "8.23.1"
-        } else {
-            "7.7.0"
-        });
-        if db == Database::Postgres {
-            package["devDependencies"]["@types/pg"] = json!("8.23.1");
-        }
         insert(
             files,
             prefix,
@@ -77,8 +106,6 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             "src/infrastructure/database/prepare.ts",
             include_str!("../../../integrations/node/database-prepare.ts"),
         );
-        package["scripts"]["db:prepare"] =
-            json!("node --env-file-if-exists=.env dist/infrastructure/database/prepare.js");
         if db == Database::Postgres {
             insert(
                 files,
@@ -89,7 +116,6 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         }
     }
     if cache {
-        package["dependencies"]["redis"] = json!("6.3.0");
         insert(files, prefix, "src/infrastructure/cache/client.ts", REDIS);
         imports.push_str("import * as cache from './cache/client.js';\n");
         start.push_str("await cache.initialize();\n");
@@ -324,7 +350,6 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         )?;
     }
     if metrics {
-        package["dependencies"]["prom-client"] = json!("15.1.3");
         insert(
             files,
             prefix,
@@ -527,9 +552,12 @@ pub fn prune_lock(source: &str, package: &Value) -> Result<Value, Error> {
 }
 
 pub fn next_metrics(files: &mut Files, prefix: &Path) -> Result<(), Error> {
-    let mut package: Value = serde_json::from_str(source_mut(files, prefix, "package.json")?)
-        .map_err(|e| Error::operation(e.to_string()))?;
-    package["dependencies"]["prom-client"] = json!("15.1.3");
+    let package = manifest(
+        source_mut(files, prefix, "package.json")?,
+        Database::None,
+        false,
+        true,
+    )?;
     let lock = prune_lock(
         include_str!("../../../integrations/node/next-lock.json"),
         &package,
@@ -553,4 +581,43 @@ pub fn next_metrics(files: &mut Files, prefix: &Path) -> Result<(), Error> {
         "import {Registry,collectDefaultMetrics} from 'prom-client';\nexport const runtime='nodejs';export const dynamic='force-dynamic';\nconst registry=new Registry();collectDefaultMetrics({register:registry});\nexport async function GET(){return new Response(await registry.metrics(),{headers:{'Content-Type':registry.contentType}}); }\n",
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod lock_tests {
+    use super::*;
+
+    #[test]
+    fn pruned_supersets_keep_only_selected_optional_drivers() {
+        for (source, lock) in [
+            (
+                include_str!("../../../templates/express-ts/package.json"),
+                include_str!("../../../integrations/node/express-lock.json"),
+            ),
+            (
+                include_str!("../../../templates/nest-ts/package.json"),
+                include_str!("../../../integrations/node/nest-lock.json"),
+            ),
+        ] {
+            for db in [Database::None, Database::Postgres, Database::Mongodb] {
+                let package = manifest(source, db, false, false).unwrap();
+                let pruned = prune_lock(lock, &package).unwrap();
+                for (name, selected) in [
+                    ("pg", db == Database::Postgres),
+                    ("@types/pg", db == Database::Postgres),
+                    ("mongodb", db == Database::Mongodb),
+                    ("redis", false),
+                    ("prom-client", false),
+                ] {
+                    assert_eq!(
+                        pruned["packages"]
+                            .get(format!("node_modules/{name}"))
+                            .is_some(),
+                        selected,
+                        "{name} {db:?}"
+                    );
+                }
+            }
+        }
+    }
 }

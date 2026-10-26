@@ -40,6 +40,17 @@ São mantidos os doze arquivos em integrations/python-locks/ e a cópia da base 
 
 Depois de alterar adapters, execute também a matriz de aplicações descrita em [Validação](validacao.md), incluindo opções com Vault. O check de locks verifica resolução/instalação; os testes das aplicações verificam comportamento.
 
-## npm
+## npm: bases e supersets
 
-Os locks npm continuam distribuídos. O comando específico está na microtask T013; até sua entrega, valide em projeto temporário e mantenha manifesto/lock coerentes. Não execute um instalador com versão flutuante em cada geração de aplicação.
+Requer Node 24 com npm, Python 3.8+ e Rust/Cargo. Use o Node selecionado pelo nvm no PATH.
+
+```sh
+python3 ferramentas/boilerplate/scripts/update_node_locks.py --check --offline
+python3 ferramentas/boilerplate/scripts/update_node_locks.py --write
+```
+
+O example node_lock_manifests combina os cinco package.json base com o compositor Node usado pela geração. Express/Nest incluem um superset com ambos os drivers, Redis e métricas; Next inclui o adapter de métricas. O projeto final recebe apenas as dependências selecionadas: prune_lock percorre dependências alcançáveis a partir do manifesto final.
+
+O script recusa versões diretas flutuantes, mantém o lock existente como ponto de partida e executa `npm install --package-lock-only` e `npm ci --ignore-scripts` em oito diretórios temporários. Não usa legacy-peer-deps: conflitos de peers devem ser resolvidos no manifesto. Scripts de dependências não são necessários para verificar o grafo; build/lint/test reais continuam obrigatórios pela matriz de geração. O modo offline exige cache npm preenchido.
+
+`--check` retorna 1 para diferenças sem alterar snapshots; `--write` publica somente depois de todas as instalações passarem. Nas bases, somente nome e engine do pacote raiz voltam a placeholders; integridades e metadados de dependências são preservados. Revise mudanças de versões e execute as bases mais os adapters afetados antes do commit. Alterações de TypeScript exigem validar também a compatibilidade de typescript-eslint pelo lint real.

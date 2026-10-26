@@ -260,7 +260,7 @@ fn render_assets(
     Ok(projects)
 }
 
-fn node_engine(version: &str) -> String {
+pub fn node_engine(version: &str) -> String {
     let major = version.split('.').next().unwrap();
     format!(
         ">={version} <{}.0.0",
