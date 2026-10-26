@@ -31,10 +31,12 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T021](tasks/T021.md) | P3 | concluída localmente; CI remota pendente | Go: base HTTP mínima | T003, T004, T005, T008 |
 | [T022](tasks/T022.md) | P3 | concluída localmente; Docker/CI pendentes | Go: adapter PostgreSQL opcional | T021, T006 |
 | [T023](tasks/T023.md) | P3 | concluída localmente; CI remota pendente | CI opcional nos projetos gerados | T003, T004, T005 |
-| [T024](tasks/T024.md) | P3 | pendente | Preparar contratos para Java e mobile | T020 |
+| [T024](tasks/T024.md) | P3 | concluída | Preparar contratos para Java e mobile | T020 |
 
 A primeira sequência é T001 → T002 → T003/T004/T005 → T006. T007–T010 podem avançar após o comando local estar disponível. A expansão de linguagens ocorre depois dos gates de validação correspondentes. Dependências de processo orientam a ordem; não substituem os critérios de aceitação de cada arquivo.
 
 Decisões de evolução: [ADR 001 — Schemas](adr/001-evolucao-de-schemas.md).
 
 [Política de dependências](dependencias.md).
+
+Expansões futuras: [Java/Spring](adr/002-java-spring.md) e [mobile](adr/003-mobile.md).
