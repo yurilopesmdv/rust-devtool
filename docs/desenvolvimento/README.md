@@ -24,7 +24,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T014](tasks/T014.md) | P1 | concluída | Timeout e interrupção de processos externos | T001 |
 | [T015](tasks/T015.md) | P1 | concluída | Contrato JSON para falhas operacionais | T001 |
 | [T016](tasks/T016.md) | P2 | concluída | Uniformizar limites Unicode dos contratos HTTP | T003, T004, T005 |
-| [T017](tasks/T017.md) | P2 | pendente | Especificar evolução de schemas | T006 |
+| [T017](tasks/T017.md) | P2 | concluída | Especificar evolução de schemas | T006 |
 | [T018](tasks/T018.md) | P2 | pendente | Smoke test das imagens Docker | T003, T004, T005 |
 | [T019](tasks/T019.md) | P2 | pendente | Teste automatizado do assistente em PTY | T001 |
 | [T020](tasks/T020.md) | P2 | pendente | Política de atualização de dependências | T002 |
@@ -34,3 +34,5 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T024](tasks/T024.md) | P3 | pendente | Preparar contratos para Java e mobile | T020 |
 
 A primeira sequência é T001 → T002 → T003/T004/T005 → T006. T007–T010 podem avançar após o comando local estar disponível. A expansão de linguagens ocorre depois dos gates de validação correspondentes. Dependências de processo orientam a ordem; não substituem os critérios de aceitação de cada arquivo.
+
+Decisões de evolução: [ADR 001 — Schemas](adr/001-evolucao-de-schemas.md).
