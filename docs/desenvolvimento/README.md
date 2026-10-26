@@ -27,7 +27,7 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 | [T017](tasks/T017.md) | P2 | concluída | Especificar evolução de schemas | T006 |
 | [T018](tasks/T018.md) | P2 | implementada; daemon pendente | Smoke test das imagens Docker | T003, T004, T005 |
 | [T019](tasks/T019.md) | P2 | concluída localmente; CI remota pendente | Teste automatizado do assistente em PTY | T001 |
-| [T020](tasks/T020.md) | P2 | pendente | Política de atualização de dependências | T002 |
+| [T020](tasks/T020.md) | P2 | concluída | Política de atualização de dependências | T002 |
 | [T021](tasks/T021.md) | P3 | pendente | Go: base HTTP mínima | T003, T004, T005, T008 |
 | [T022](tasks/T022.md) | P3 | pendente | Go: adapter PostgreSQL opcional | T021, T006 |
 | [T023](tasks/T023.md) | P3 | pendente | CI opcional nos projetos gerados | T003, T004, T005 |
@@ -36,3 +36,5 @@ A prioridade inicial é validar de forma repetível as sete stacks existentes. G
 A primeira sequência é T001 → T002 → T003/T004/T005 → T006. T007–T010 podem avançar após o comando local estar disponível. A expansão de linguagens ocorre depois dos gates de validação correspondentes. Dependências de processo orientam a ordem; não substituem os critérios de aceitação de cada arquivo.
 
 Decisões de evolução: [ADR 001 — Schemas](adr/001-evolucao-de-schemas.md).
+
+[Política de dependências](dependencias.md).
