@@ -315,9 +315,8 @@ pub fn app()->Router{{
             files,
             prefix,
             "tests/api.rs",
-            format!(
-                "use {crate_name}::{{app,infrastructure}};\nuse axum::{{body::Body,http::{{Request,StatusCode}}}};use tower::ServiceExt;\n#[tokio::test]async fn liveness_does_not_require_a_database(){{let response=app().oneshot(Request::builder().uri(\"/health\").body(Body::empty()).unwrap()).await.unwrap();assert_eq!(response.status(),StatusCode::OK);}}\n#[tokio::test]#[ignore=\"Requer DATABASE_URL e banco preparado; rode cargo test -- --ignored\"]async fn persistence(){{infrastructure::initialize().await.unwrap();let ready=app().oneshot(Request::builder().uri(\"/ready\").body(Body::empty()).unwrap()).await.unwrap();assert_eq!(ready.status(),StatusCode::OK);infrastructure::schema::prepare().await.unwrap();{crate_name}::modules::example::repositories::write(\"persistido\").await.unwrap();assert_eq!({crate_name}::modules::example::repositories::read().await.unwrap(),\"persistido\");infrastructure::close().await;for(path,status)in[(\"/ready\",StatusCode::SERVICE_UNAVAILABLE),(\"/health\",StatusCode::OK)]{{let response=app().oneshot(Request::builder().uri(path).body(Body::empty()).unwrap()).await.unwrap();assert_eq!(response.status(),status);}}}}\n"
-            ),
+            include_str!("../../../integrations/rust/persistence-test.rs")
+                .replace("{{CRATE}}", &crate_name),
         );
     }
     if vault {

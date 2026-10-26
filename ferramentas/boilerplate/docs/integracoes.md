@@ -46,7 +46,7 @@ Para dados relacionais/transações, PostgreSQL é uma base prática. MongoDB of
 
 `local` gera os recursos de desenvolvimento no Compose/Kubernetes selecionado. `external` gera apenas o cliente/contrato e exemplos de configuração: não cria uma segunda instância. URLs com credenciais ficam em .env ignorado ou arquivos de segredos, não na receita TOML.
 
-O exemplo persistente expõe GET e POST em `/api/v1/example`; a gravação valida `message` entre 1 e 200 caracteres. A preparação é explícita e idempotente para a tabela/coleção de exemplo:
+O exemplo persistente expõe GET e POST em `/api/v1/example`; a gravação valida `message` entre 1 e 200 pontos de código Unicode (não bytes, unidades UTF-16 ou grafemas visuais). Por exemplo, 200 emojis simples são aceitos; 201 são rejeitados. Sequências combinadas podem contar como vários pontos. Express/Nest/Rust respondem 400 para mensagem inválida; FastAPI preserva 422. Valores não string continuam inválidos. Os testes HTTP persistentes restauram a mensagem anterior após verificar esses limites. A preparação é explícita e idempotente para a tabela/coleção de exemplo:
 
 - Node: na API, `npm run build && npm run db:prepare`.
 - Rust: na API, `cargo run --locked --example prepare`.

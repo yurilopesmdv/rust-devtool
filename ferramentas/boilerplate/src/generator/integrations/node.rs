@@ -195,7 +195,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                     ""
                 },
                 if db != Database::None {
-                    "export async function writeController(req:Request,res:Response){const message=req.body?.message;if(typeof message!=='string'||message.length<1||message.length>200){res.status(400).json({error:'message precisa conter 1 a 200 caracteres'});return;}res.json(await writeExample(message));}\n"
+                    "export async function writeController(req:Request,res:Response){const message=req.body?.message;if(typeof message!=='string'||message.length<1||Array.from(message).length>200){res.status(400).json({error:'message precisa conter 1 a 200 caracteres'});return;}res.json(await writeExample(message));}\n"
                 } else {
                     ""
                 }
@@ -307,7 +307,7 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
                 prefix,
                 "src/modules/example/example.controller.ts",
                 "  @Get()\n  get() {\n    return this.service.get();\n  }",
-                "  @Get()\n  get() {\n    return this.service.get();\n  }\n @Post() @HttpCode(200) write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||message.length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
+                "  @Get()\n  get() {\n    return this.service.get();\n  }\n @Post() @HttpCode(200) write(@Body() body:{message?:unknown}){const message=body?.message;if(typeof message!=='string'||message.length<1||Array.from(message).length>200)throw new BadRequestException('message precisa conter 1 a 200 caracteres');return this.service.write(message);}",
             )?;
         }
         source_mut(files, prefix, "src/app.ts")?.insert_str(
@@ -426,11 +426,14 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
         checks.push_str(r#"
 assert.equal((await fetch(`${__BASE__}/ready`)).status,200);
 const previous=await (await fetch(`${__BASE__}/api/v1/example`)).json();
-const message=`updated-${Date.now()}`;
-assert.equal((await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})})).status,200);
-assert.equal((await (await fetch(`${__BASE__}/api/v1/example`)).json()).message,message);
-assert.equal((await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:123})})).status,400);
+try {
+for(const [message,expected] of [['😀'.repeat(200),200],['😀'.repeat(201),400],[123,400]]){
+assert.equal((await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})})).status,expected);
+if(expected===200)assert.equal((await (await fetch(`${__BASE__}/api/v1/example`)).json()).message,message);
+}
+} finally {
 await fetch(`${__BASE__}/api/v1/example`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(previous)});
+}
 "#);
     }
     if metrics {
