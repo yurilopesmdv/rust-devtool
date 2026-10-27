@@ -89,7 +89,7 @@ Após `cargo build -p rust-boilerplate --locked`, execute:
 python3 ferramentas/boilerplate/scripts/wizard_pty.py --binary target/debug/boilerplate
 ```
 
-O teste Linux/WSL abre um terminal real, usa HOME temporário e PATH sem instaladores, verifica recuperação de escolhas inválidas, aceita o destino HOME/projects e cria vanilla sem instalação/Git. Uma segunda sessão recusa a confirmação: código 130, nenhum destino ou staging publicado. Prompts e término têm limites para evitar travar a suíte. A CI roda esse teste depois dos checks do workspace.
+O teste Linux/WSL abre um terminal real, usa HOME temporário e PATH sem instaladores, verifica recuperação de escolhas inválidas, aceita o destino HOME/projects e cria vanilla sem instalação/Git. Uma segunda sessão recusa a confirmação: código 130, nenhum destino ou staging publicado. Duas sessões adicionais de Go verificam o menu restrito a none/PostgreSQL, rejeição de MongoDB, ausência de perguntas Redis/Vault/monitoria e geração com/sem PostgreSQL e migrations. Para esses cenários, gofmt precisa estar no PATH. Prompts e término têm limites para evitar travar a suíte. A CI roda esse teste depois dos checks do workspace.
 
 ### Executar a validação antes de integrar na main
 
@@ -121,3 +121,9 @@ A evolução de schemas possui validadores separados: `validate_migrations.py`, 
 ### Continuação web aprovada
 
 [Quality 40561319069](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40561319069), commit bd9623d: 29 jobs aprovados, incluindo os oito scripts CI gerados (mais Express/CommonJS), 53 workflows, migrations PostgreSQL/Mongo, evolução/recuperação com duas APIs e oito imagens mínimas. As tasks M001–M003/C001 estão concluídas. A composição completa de infraestrutura e aplicação de manifests em cluster continuam fora desta evidência; os workflows de aplicação gerados não foram publicados em novos repositórios.
+
+## Revisão das capacidades do assistente
+
+A revisão após C001 encontrou perguntas incompatíveis no fluxo Go: MongoDB, Redis, Vault e monitoria eram oferecidos antes de o planner rejeitar a escolha. O assistente agora consulta capabilities do catálogo para dados, migrations, cache, segredos, containers, Kubernetes, monitoria e CI. Escolhas explícitas por flag/receita continuam sujeitas ao planner; não são silenciosamente removidas.
+
+Quatro sessões PTY passaram, incluindo Go sem dados e Go com PostgreSQL/migrations, sem instalações nem serviços. Verificação adicional das quatro flags incompatíveis retornou código 2 sem criar destino. Workspace completo, 31 testes Python de manutenção, wrapper shell, Ruff e links locais aprovados. A mudança afeta seleção interativa; fontes e dependências das aplicações permanecem iguais.

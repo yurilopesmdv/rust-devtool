@@ -157,6 +157,20 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             *selected = Some(choose(&format!("Stack {role:?}"), &options)?);
         }
     }
+    let selected = [&r.frontend.template, &r.backend.template]
+        .into_iter()
+        .flatten()
+        .map(|id| catalog.get(id))
+        .collect::<Result<Vec<_>, _>>()?;
+    let backend = selected.iter().find(|t| t.role == ProjectType::Backend);
+    let supports_backend =
+        |capability: &str| backend.is_some_and(|t| t.capabilities.iter().any(|c| c == capability));
+    let supports_all = |capability: &str| {
+        !selected.is_empty()
+            && selected
+                .iter()
+                .all(|t| t.capabilities.iter().any(|c| c == capability))
+    };
     let uses_node = [&r.frontend.template, &r.backend.template]
         .into_iter()
         .flatten()
@@ -203,7 +217,9 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
     }
     if r.infrastructure.containers.is_none() {
         r.infrastructure.containers = Some(
-            if decision("Gerar Dockerfile, .dockerignore e Compose?", false)? {
+            if supports_all("compose")
+                && decision("Gerar Dockerfile, .dockerignore e Compose?", false)?
+            {
                 Containers::Compose
             } else {
                 Containers::None
@@ -212,20 +228,30 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
     }
 
     if r.infrastructure.kubernetes.is_none() {
-        r.infrastructure.kubernetes = Some(if decision("Gerar manifests Kubernetes?", false)? {
-            Kubernetes::Manifests
-        } else {
-            Kubernetes::None
-        });
+        r.infrastructure.kubernetes = Some(
+            if supports_all("kubernetes") && decision("Gerar manifests Kubernetes?", false)? {
+                Kubernetes::Manifests
+            } else {
+                Kubernetes::None
+            },
+        );
     }
     let local_infra = r.infrastructure.containers == Some(Containers::Compose)
         || r.infrastructure.kubernetes == Some(Kubernetes::Manifests);
     if r.project.kind != Some(ProjectType::Frontend) {
         if r.backend.database.is_none() {
-            let value = choose(
-                "Banco de dados",
-                &["none".into(), "postgres".into(), "mongodb".into()],
-            )?;
+            let mut options = vec!["none".to_string()];
+            options.extend(
+                ["postgres", "mongodb"]
+                    .into_iter()
+                    .filter(|cap| supports_backend(cap))
+                    .map(str::to_string),
+            );
+            let value = if options.len() == 1 {
+                "none".to_string()
+            } else {
+                choose("Banco de dados", &options)?
+            };
             r.backend.database = Some(match value.as_str() {
                 "postgres" => Database::Postgres,
                 "mongodb" => Database::Mongodb,
@@ -236,7 +262,10 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             r.backend.database_location =
                 Some(service_location("Localização do banco", local_infra)?);
         }
-        if r.backend.database == Some(Database::Postgres) && r.backend.migrations.is_none() {
+        if r.backend.database == Some(Database::Postgres)
+            && r.backend.migrations.is_none()
+            && supports_backend("migrations-dbmate")
+        {
             r.backend.migrations = Some(
                 if decision(
                     "Adicionar migrations PostgreSQL versionadas (dbmate)?",
@@ -248,7 +277,10 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
                 },
             );
         }
-        if r.backend.database == Some(Database::Mongodb) && r.backend.migrations.is_none() {
+        if r.backend.database == Some(Database::Mongodb)
+            && r.backend.migrations.is_none()
+            && supports_backend("migrations-mongodb-native")
+        {
             r.backend.migrations = Some(
                 if decision(
                     "Adicionar migrations MongoDB nativas com checkpoints?",
@@ -261,21 +293,26 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             );
         }
         if r.backend.cache.is_none() {
-            r.backend.cache = Some(if decision("Usar Redis como cache opcional?", false)? {
-                Cache::Redis
-            } else {
-                Cache::None
-            });
+            r.backend.cache = Some(
+                if supports_backend("redis") && decision("Usar Redis como cache opcional?", false)?
+                {
+                    Cache::Redis
+                } else {
+                    Cache::None
+                },
+            );
         }
         if r.backend.cache == Some(Cache::Redis) && r.backend.cache_location.is_none() {
             r.backend.cache_location = Some(service_location("Localização do Redis", local_infra)?);
         }
         if r.infrastructure.secrets.is_none() {
             r.infrastructure.secrets = Some(
-                if decision(
-                    "Integrar Vault para entrega de segredos por arquivos?",
-                    false,
-                )? {
+                if supports_backend("vault")
+                    && decision(
+                        "Integrar Vault para entrega de segredos por arquivos?",
+                        false,
+                    )?
+                {
                     Secrets::Vault
                 } else {
                     Secrets::Env
@@ -316,9 +353,17 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
         )?);
     }
     if r.infrastructure.monitoring.is_none() {
-        let supported = r.backend.template.is_some()
-            || r.frontend.template.as_deref() == Some("next-ts")
-            || local_infra;
+        let supported = if backend.is_some() {
+            supports_backend("prometheus-grafana")
+        } else {
+            !selected.is_empty()
+                && selected.iter().all(|t| {
+                    t.capabilities.iter().any(|c| {
+                        c == "prometheus-grafana"
+                            || (local_infra && c == "prometheus-grafana-container")
+                    })
+                })
+        };
         r.infrastructure.monitoring = Some(
             if supported && decision("Adicionar Prometheus e Grafana?", false)? {
                 Monitoring::PrometheusGrafana
@@ -345,18 +390,7 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             }
         }
     }
-    let ci_supported = [&r.frontend.template, &r.backend.template]
-        .into_iter()
-        .flatten()
-        .all(|id| {
-            catalog.get(id).is_ok_and(|template| {
-                template
-                    .capabilities
-                    .iter()
-                    .any(|cap| cap == "github-actions")
-            })
-        });
-    if r.infrastructure.ci.is_none() && ci_supported {
+    if r.infrastructure.ci.is_none() && supports_all("github-actions") {
         r.infrastructure.ci = Some(
             if decision("Gerar CI GitHub Actions dos projetos (sem deploy)?", false)? {
                 Ci::GithubActions

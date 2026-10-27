@@ -73,3 +73,5 @@ Os fontes compostos passam por generator/format.rs antes da publicação. JS/TS 
 Declare `github-actions` e o caminho condicional `.ci/check.sh` somente após validar o adapter do gerenciador em `src/generator/ci.rs`. Gerenciadores novos precisam de fragmentos de job e script em `integrations/ci/`, com runtime explícito, instalação por lock e checks reais. O workflow chama o script local; não duplique a sequência de checks no YAML. Não inclua deploy ou serviços implicitamente.
 
 Execute `scripts/validate-generated.py --minimal --generated-ci --stacks <id>` com os runtimes preparados. `scripts/validate_generated_workflows.py --binary <caminho> --actionlint <caminho>` percorre o catálogo e todos os pares fullstack. Cubra também CI desativada, monorepo e split antes de marcar a stack ready.
+
+O assistente também consulta as capabilities para oferecer perguntas e opções. Não acrescente exceções pelo nome da linguagem: uma capacidade precisa ter adapter validado antes de ser anunciada. Flags e receitas incompatíveis continuam sendo recusadas pelo planner.

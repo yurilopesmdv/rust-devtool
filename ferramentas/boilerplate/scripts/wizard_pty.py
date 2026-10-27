@@ -6,23 +6,29 @@ import errno
 import os
 import pty
 import select
+import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
 
-def session(binary, cancel):
+def session(binary, cancel, backend=False, postgres=False):
     with tempfile.TemporaryDirectory(prefix="boilerplate-pty-") as temporary:
         root = Path(temporary)
         env = os.environ.copy()
         env.update(HOME=str(root), PATH="/nonexistent", NVM_DIR=str(root / "nvm"))
+        if backend:
+            gofmt = shutil.which("gofmt")
+            if not gofmt:
+                raise RuntimeError("Carregue gofmt antes de testar o assistente Go")
+            env["PATH"] = str(Path(gofmt).parent)
         master, slave = pty.openpty()
         command = [
             str(binary),
             "new",
-            "--frontend",
-            "vanilla-js",
+            "--backend" if backend else "--frontend",
+            "go-http" if backend else "vanilla-js",
             "--node-version",
             "24",
             "--module-system",
@@ -31,11 +37,8 @@ def session(binary, cancel):
             "none",
             "--kubernetes",
             "none",
-            "--monitoring",
-            "none",
-            "--secrets",
-            "env",
-            "--api-url",
+            *([] if backend else ["--monitoring", "none", "--secrets", "env"]),
+            "--frontend-origin" if backend else "--api-url",
             "http://localhost:3000",
             "--git",
             "no",
@@ -75,7 +78,8 @@ def session(binary, cancel):
                             f"PTY encerrada antes de {marker}: {buffer!r}"
                         )
                     buffer += data
-            buffer = buffer.split(target, 1)[1]
+            before, buffer = buffer.split(target, 1)
+            return before
 
         def send(value):
             os.write(master, (value + "\n").encode())
@@ -88,10 +92,26 @@ def session(binary, cancel):
             send("99")
             expect("Escolha uma opção da lista")
             expect("Escolha:")
-            send("1")
+            send("2" if backend else "1")
             expect(str(root / "projects/projeto-pty"))
             send("")
-            expect("Gerar CI GitHub Actions dos projetos")
+            if backend:
+                expect("Banco de dados")
+                options = expect("Escolha:")
+                assert b"postgres" in options and b"mongodb" not in options
+                send("mongodb")
+                expect("Escolha uma opção da lista")
+                expect("Escolha:")
+                send("2" if postgres else "1")
+                if postgres:
+                    expect("Localização do banco")
+                    send("")
+                    expect("Adicionar migrations PostgreSQL versionadas")
+                    send("s")
+            skipped = expect("Gerar CI GitHub Actions dos projetos")
+            if backend:
+                for unsupported in [b"Redis", b"Vault", b"Prometheus"]:
+                    assert unsupported not in skipped, skipped
             send("")
             expect("Criar estes projetos?")
             send("talvez")
@@ -102,7 +122,14 @@ def session(binary, cancel):
             destination = root / "projects/projeto-pty"
             assert destination.exists() != cancel
             if not cancel:
-                assert (destination / "index.html").is_file()
+                assert (
+                    destination / ("cmd/api/main.go" if backend else "index.html")
+                ).is_file()
+                if backend:
+                    assert (
+                        destination / "internal/infrastructure/database"
+                    ).exists() == postgres
+                    assert (destination / "scripts/migrate.sh").exists() == postgres
                 assert not (destination / "node_modules").exists()
                 assert not (destination / ".git").exists()
             assert not any(
@@ -122,7 +149,11 @@ def main():
     binary = args.binary.resolve(strict=True)
     session(binary, cancel=False)
     session(binary, cancel=True)
-    print("OK PTY: geração, destino HOME/projects, entradas inválidas e cancelamento")
+    session(binary, cancel=False, backend=True)
+    session(binary, cancel=False, backend=True, postgres=True)
+    print(
+        "OK PTY: geração, destino HOME/projects, entradas inválidas, cancelamento e capacidades Go"
+    )
 
 
 if __name__ == "__main__":
