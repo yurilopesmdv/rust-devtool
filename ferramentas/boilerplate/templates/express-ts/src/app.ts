@@ -10,5 +10,8 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+app.get('/ready', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 app.use('/api/v1', routes);
 app.use(errors);

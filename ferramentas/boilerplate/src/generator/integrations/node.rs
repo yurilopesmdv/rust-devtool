@@ -231,6 +231,13 @@ pub fn apply(r: &Recipe, t: &Template, files: &mut Files, prefix: &Path) -> Resu
             "app.disable('x-powered-by');",
             "app.disable('x-powered-by');\napp.get('/ready',async(_req,res)=>{try{res.json(await readiness());}catch{res.status(503).json({status:'unavailable'});}});",
         )?;
+        replace(
+            files,
+            prefix,
+            "src/app.ts",
+            "app.get('/ready', (_req, res) => {\n  res.json({ status: 'ok' });\n});\n",
+            "",
+        )?;
         source_mut(files, prefix, "src/app.ts")?.insert_str(
             0,
             "import {readiness} from './infrastructure/lifecycle.js';\n",

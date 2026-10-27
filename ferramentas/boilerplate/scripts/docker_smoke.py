@@ -47,16 +47,21 @@ def wait_ready(
     timeout=90,
 ):
     deadline = clock() + timeout
+    last_failure = "sem resposta HTTP"
     while clock() < deadline:
         try:
             with opener(url, timeout=2) as response:
                 if response.status == 200:
                     return
-        except (urllib.error.URLError, OSError):
+        except urllib.error.HTTPError as error:
+            last_failure = f"HTTP {error.code}"
+        except (urllib.error.URLError, OSError) as error:
             # Startup can reset a socket before the HTTP listener becomes available.
-            pass
+            last_failure = type(error).__name__
         pause(0.5)
-    raise RuntimeError("Imagem não atingiu readiness no limite configurado")
+    raise RuntimeError(
+        f"Imagem não atingiu readiness no limite configurado: {last_failure}"
+    )
 
 
 def smoke(binary, template, root, execute=run, probe=None):

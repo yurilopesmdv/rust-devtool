@@ -9,6 +9,7 @@ test('health, API e CORS funcionam', async () => {
     const response = await fetch(`${base}/health`);
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { status: 'ok' });
+    assert.equal((await fetch(`${base}/ready`)).status, 200);
     const example = await fetch(`${base}/api/v1/example`, {
       headers: { Origin: 'http://localhost:{{WEB_PORT}}' },
     });
