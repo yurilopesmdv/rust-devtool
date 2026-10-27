@@ -3,7 +3,7 @@ name: Quality
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'validation/**']
   workflow_dispatch:
     inputs:
       docker_smoke:
@@ -20,7 +20,9 @@ concurrency:
 
 jobs:
   docker-smoke:
-    if: github.event_name == 'workflow_dispatch' && inputs.docker_smoke
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.docker_smoke) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/validation/docker-'))
     name: Docker smoke (${{ matrix.stack }})
     runs-on: ubuntu-24.04
     timeout-minutes: 35

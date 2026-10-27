@@ -90,3 +90,9 @@ python3 ferramentas/boilerplate/scripts/wizard_pty.py --binary target/debug/boil
 ```
 
 O teste Linux/WSL abre um terminal real, usa HOME temporário e PATH sem instaladores, verifica recuperação de escolhas inválidas, aceita o destino HOME/projects e cria vanilla sem instalação/Git. Uma segunda sessão recusa a confirmação: código 130, nenhum destino ou staging publicado. Prompts e término têm limites para evitar travar a suíte. A CI roda esse teste depois dos checks do workspace.
+
+### Executar a validação antes de integrar na main
+
+O workflow também aceita push para branches `validation/**`. As branches `validation/docker-*` habilitam explicitamente a matriz de smoke Docker junto dos demais checks, em runners descartáveis. Isso permite verificar um workflow novo antes de ele existir na branch padrão. Branches de validação comuns executam os demais checks e mantêm o smoke desativado. O gerador não publica essas branches; o envio é uma ação separada do mantenedor.
+
+O runner tolera resets de conexão durante o startup até atingir o prazo. Cleanup tenta remover container e imagem mesmo se uma remoção falhar; se já houver erro de readiness/build, ele permanece como causa principal e falhas de limpeza aparecem em stderr.

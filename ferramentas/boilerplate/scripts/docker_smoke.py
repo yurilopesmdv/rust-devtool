@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import sys
 import tempfile
 import time
 import urllib.error
@@ -36,6 +37,26 @@ def run(command, cwd):
             f"{command[0]} failed: {(result.stdout + result.stderr)[-3000:]}"
         )
     return result.stdout.strip()
+
+
+def wait_ready(
+    url,
+    opener=urllib.request.urlopen,
+    clock=time.monotonic,
+    pause=time.sleep,
+    timeout=90,
+):
+    deadline = clock() + timeout
+    while clock() < deadline:
+        try:
+            with opener(url, timeout=2) as response:
+                if response.status == 200:
+                    return
+        except (urllib.error.URLError, OSError):
+            # Startup can reset a socket before the HTTP listener becomes available.
+            pass
+        pause(0.5)
+    raise RuntimeError("Imagem não atingiu readiness no limite configurado")
 
 
 def smoke(binary, template, root, execute=run, probe=None):
@@ -126,17 +147,7 @@ def smoke(binary, template, root, execute=run, probe=None):
         if probe:
             probe(url)
         else:
-            deadline = time.monotonic() + 90
-            while True:
-                try:
-                    with urllib.request.urlopen(url, timeout=2) as response:
-                        if response.status == 200:
-                            break
-                except (urllib.error.URLError, TimeoutError):
-                    pass
-                if time.monotonic() >= deadline:
-                    raise RuntimeError("Imagem não atingiu readiness em 90s")
-                time.sleep(0.5)
+            wait_ready(url)
         execute(["docker", "stop", "--time", "5", label], root)
         state = json.loads(
             execute(["docker", "inspect", "--format", "{{json .State}}", label], root)
@@ -144,13 +155,25 @@ def smoke(binary, template, root, execute=run, probe=None):
         if state["Running"] or state["OOMKilled"] or state["ExitCode"] == 137:
             raise RuntimeError("Encerramento não foi limpo")
     finally:
-        # Exact names owned by this invocation; never prune or delete volumes.
-        try:
-            if created:
-                execute(["docker", "rm", "-f", label], root)
-        finally:
-            if built:
-                execute(["docker", "image", "rm", image], root)
+        # Always attempt both cleanups and preserve the primary failure.
+        primary_failure = sys.exc_info()[0] is not None
+        commands = []
+        if created:
+            commands.append(["docker", "rm", "-f", label])
+        if built:
+            commands.append(["docker", "image", "rm", image])
+        failures = []
+        for command in commands:
+            try:
+                execute(command, root)
+            except (RuntimeError, OSError) as error:
+                failures.append(str(error))
+        if failures:
+            message = "Cleanup incompleto dos recursos próprios: " + "; ".join(failures)
+            if primary_failure:
+                print(message, file=sys.stderr)
+            else:
+                raise RuntimeError(message)
 
 
 def main():
