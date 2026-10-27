@@ -10,11 +10,11 @@ cargo test --workspace --all-targets --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-Os 59 testes do workspace incluem uma matriz de 72 combinações de backend/dados/cache/monitoria/Vault, mais 24 combinações Python e verificações das doze duplas fullstack, conferindo ausência de módulos desativados, lockfiles, serviços locais/externos, referências a segredos, layouts e URLs. Não iniciam bancos, containers ou clusters.
+Os 69 testes do workspace incluem uma matriz de 72 combinações de backend/dados/cache/monitoria/Vault, mais 24 combinações Python e verificações das quinze duplas fullstack, conferindo ausência de módulos desativados, lockfiles, serviços locais/externos, referências a segredos, layouts e URLs. Não iniciam bancos, containers ou clusters.
 
 ## Compilar as aplicações geradas
 
-O script opcional requer Python 3.8+ para orquestração e Rust/Cargo. Os checks das aplicações usam Node 24 para stacks npm, rustfmt/Clippy para Rust e uv para Python 3.13. Cria projetos em diretório temporário, instala dependências locais e executa typecheck/build/test. Docker CLI e kubectl, quando presentes, validam Compose e Kustomize sem daemon/cluster.
+O script opcional requer Python 3.8+ para orquestração e Rust/Cargo. Os checks das aplicações usam Node 24 para stacks npm, rustfmt/Clippy para Rust, uv para Python 3.13 e Go/gofmt 1.27.3. Cria projetos em diretório temporário, instala dependências locais e executa typecheck/build/test. Docker CLI e kubectl, quando presentes, validam Compose e Kustomize sem daemon/cluster.
 
 ```sh
 nvm use 24
@@ -61,7 +61,7 @@ O gerador não depende de CLIs globais de JavaScript/Python para gerar arquivos.
 
 O middleware Express também foi verificado em ESM/CommonJS com requisições reais de JSON inválido (400) e payload grande (413), sem depender de banco para esses casos.
 
-O workflow Quality agora separa o workspace, bases mínimas npm/Python/Rust e persistência com serviços descartáveis. A validação local da T006 também verifica readiness após fechar a conexão (503) e liveness preservada (200) nas dez combinações de backend/banco, contando Express/CommonJS. A primeira execução dos jobs/imagens no GitHub ainda precisa ser observada; veja docs/desenvolvimento/tasks/T006.md na raiz do repositório.
+O workflow Quality agora separa o workspace, bases mínimas npm/Python/Rust e persistência com serviços descartáveis. A validação local da T006 também verifica readiness após fechar a conexão (503) e liveness preservada (200) nas dez combinações de backend/banco, contando Express/CommonJS. Os jobs e as oito imagens mínimas já passaram no GitHub; consulte a evidência remota ao final deste documento.
 
 ## Limites e interrupção
 
@@ -100,3 +100,24 @@ O runner tolera resets de conexão durante o startup até atingir o prazo. Clean
 ## Evidência remota concluída
 
 [Quality 40527937252](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40527937252), commit c3df5a0: 26 jobs aprovados em 2026-10-27. Inclui workspace, bases, persistência com serviços descartáveis, locks, documentação e oito smoke tests reais. O primeiro run detectou /ready ausente em Express/Nest/Rust mínimos; a correção passou nos testes HTTP e nas imagens. Não houve aplicação de manifests em cluster nem smoke da composição completa com Vault/monitoria; esses testes não equivalem à validação de um ambiente de produção.
+
+## Reprodução da CI gerada
+
+Com os runtimes de cada stack preparados, execute os scripts distribuídos com as bases:
+
+```sh
+python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci
+# Express/CommonJS também é coberto separadamente:
+python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci --commonjs-only
+cargo build -p rust-boilerplate --locked
+python3 ferramentas/boilerplate/scripts/validate_generated_workflows.py \
+  --binary target/debug/boilerplate --actionlint /caminho/para/actionlint
+```
+
+A primeira opção executa `sh .ci/check.sh` em cada aplicação temporária. A segunda matriz gera oito bases e 30 pares/layouts e valida 53 workflows com actionlint; não cria repositórios remotos nem executa deploys. O Quality usa os scripts reais nas matrizes mínimas e baixa actionlint 1.7.12 com SHA256 verificado no job workspace.
+
+A evolução de schemas possui validadores separados: `validate_migrations.py`, `validate_mongodb_migrations.py` e `validate_schema_evolution.py` em scripts do boilerplate. Eles exigem bancos vazios descartáveis e autorização explícita via `--disposable-database`; consulte `--help` e o [guia de migrations](migrations.md). A CI fornece services temporários; os scripts não iniciam infraestrutura e removem somente seus dados de teste conhecidos.
+
+### Continuação web aprovada
+
+[Quality 40561319069](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40561319069), commit bd9623d: 29 jobs aprovados, incluindo os oito scripts CI gerados (mais Express/CommonJS), 53 workflows, migrations PostgreSQL/Mongo, evolução/recuperação com duas APIs e oito imagens mínimas. As tasks M001–M003/C001 estão concluídas. A composição completa de infraestrutura e aplicação de manifests em cluster continuam fora desta evidência; os workflows de aplicação gerados não foram publicados em novos repositórios.

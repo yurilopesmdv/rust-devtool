@@ -26,7 +26,13 @@ def main():
     actionlint = str(args.actionlint.resolve())
     with tempfile.TemporaryDirectory(prefix="boilerplate-ci-") as directory:
         root = Path(directory)
-        templates = json.loads(run([binary, "templates", "list", "--json"], root))
+        templates = [
+            template
+            for template in json.loads(
+                run([binary, "templates", "list", "--json"], root)
+            )
+            if template["status"] == "ready"
+        ]
         front = [t for t in templates if t["role"] == "frontend"]
         back = [t for t in templates if t["role"] == "backend"]
         cases = [["--type", t["role"], "--" + t["role"], t["id"]] for t in templates]

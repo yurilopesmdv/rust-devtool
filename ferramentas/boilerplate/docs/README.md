@@ -43,4 +43,6 @@ A mesma escolha sem banco, cache e infraestrutura deve gerar somente as aplicaç
 
 As combinações das bases podem ser geradas nos dois layouts. O exemplo completo com dados/monitoria/segredos é gerável; é preciso preencher as configurações e executar seu bootstrap no ambiente de destino. Gerar manifests de laboratório não equivale a implantar um ambiente de produção.
 
-Entregas adicionais: [Go](go.md), [CI opcional Express](ci.md) e [manutenção dos locks](locks.md). Go aceita PostgreSQL/Compose/Kubernetes; suas demais integrações continuam indisponíveis.
+Entregas adicionais: [Go](go.md), [CI opcional em todas as stacks](ci.md) e [manutenção dos locks](locks.md). Go aceita PostgreSQL/Compose/Kubernetes; suas demais integrações continuam indisponíveis.
+
+[Migrations PostgreSQL/MongoDB](migrations.md) oferecem execução explícita, verificação de integridade e cenários de recuperação.

@@ -60,6 +60,10 @@ A conclusão de T001–T024 cobriu as entregas daquela rodada e seus checks. As 
 | [M001](tasks/M001.md) | concluída; CI aprovada | Migrations PostgreSQL opcionais |
 | [M002](tasks/M002.md) | concluída; CI aprovada | Migrations MongoDB por stack |
 | [M003](tasks/M003.md) | concluída; CI aprovada | Compatibilidade e recuperação |
-| [C001](tasks/C001.md) | em validação | CI gerada para todo o catálogo web |
+| [C001](tasks/C001.md) | concluída; CI aprovada | CI gerada para todo o catálogo web |
 
 Java e mobile continuam em fase posterior, conforme os ADRs.
+
+## Conclusão da continuação web
+
+M001, M002, M003 e C001 concluídas. [Quality 40561319069](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40561319069) aprovou 29/29 jobs do commit bd9623d: scripts de CI das oito stacks e CommonJS, 53 workflows, persistência, migrations, evolução/recuperação entre releases e oito smoke tests Docker. Workspace local: 69 testes Rust, 31 testes Python de manutenção, fmt/Clippy/Ruff e PTY aprovados; 78 documentos sem links inválidos. Não há task web pendente nesta sequência. Java/mobile permanecem na fase futura, sem templates anunciados. Publicação limitada à branch de validação autorizada.
