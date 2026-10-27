@@ -91,7 +91,7 @@ pub struct PlanArgs {
     pub cache_location: Option<Location>,
     #[arg(long, value_enum)]
     pub containers: Option<Containers>,
-    /// CI opcional; primeira implementação para Express, sem deploy/publicação.
+    /// CI opcional para as aplicações selecionadas, sem deploy/publicação.
     #[arg(long, value_enum)]
     pub ci: Option<Ci>,
     #[arg(long, value_enum)]

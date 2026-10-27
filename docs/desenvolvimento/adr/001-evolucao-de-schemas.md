@@ -1,6 +1,6 @@
 # ADR 001 — Evolução de schemas
 
-Estado: M001/M002 implementados e aprovados remotamente; M003 provou compatibilidade/recuperação localmente e aguarda CI.
+Estado: M001/M002/M003 implementados e aprovados remotamente, incluindo compatibilidade e recuperação.
 
 ## Contexto
 

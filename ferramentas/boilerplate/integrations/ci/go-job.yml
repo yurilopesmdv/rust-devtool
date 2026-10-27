@@ -1,0 +1,19 @@
+runs-on: ubuntu-24.04
+timeout-minutes: 15
+env:
+  GOTOOLCHAIN: local
+defaults:
+  run:
+    working-directory: '@@WORKING_DIRECTORY@@'
+steps:
+  - name: Checkout
+    uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    with:
+      persist-credentials: false
+  - name: Prepare Go
+    uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+    with:
+      go-version: '1.27.3'
+      cache: false
+  - name: Run project checks
+    run: sh .ci/check.sh

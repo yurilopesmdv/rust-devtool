@@ -1,0 +1,11 @@
+name: Project quality
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: project-quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:

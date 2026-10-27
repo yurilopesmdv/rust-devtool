@@ -434,17 +434,12 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
             omitted.push(key.to_string());
         }
     }
-    require(
-        ci == Ci::None || has_api,
-        "CI GitHub Actions exige um backend compatível",
-    )?;
     for capability in &integrations {
         let targets: Vec<_> = match capability.as_str() {
             "postgres"
             | "mongodb"
             | "redis"
             | "vault"
-            | "github-actions"
             | "migrations-dbmate"
             | "migrations-mongodb-native" => selected
                 .iter()
@@ -480,12 +475,7 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
         if containers == Containers::Compose {
             infrastructure_paths.push(dir.join("compose.yaml"));
         }
-        if ci == Ci::GithubActions
-            && (!split
-                || selected
-                    .iter()
-                    .any(|(t, p)| p == &dir && t.role == ProjectType::Backend))
-        {
+        if ci == Ci::GithubActions {
             infrastructure_paths.push(dir.join(".github/workflows/ci.yml"));
         }
         if kubernetes == Kubernetes::Manifests {

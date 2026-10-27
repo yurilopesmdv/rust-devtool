@@ -59,7 +59,7 @@ A conclusão de T001–T024 cobriu as entregas daquela rodada e seus checks. As 
 | --- | --- | --- |
 | [M001](tasks/M001.md) | concluída; CI aprovada | Migrations PostgreSQL opcionais |
 | [M002](tasks/M002.md) | concluída; CI aprovada | Migrations MongoDB por stack |
-| [M003](tasks/M003.md) | concluída localmente; CI pendente | Compatibilidade e recuperação |
-| [C001](tasks/C001.md) | pendente | CI gerada para todo o catálogo web |
+| [M003](tasks/M003.md) | concluída; CI aprovada | Compatibilidade e recuperação |
+| [C001](tasks/C001.md) | em validação | CI gerada para todo o catálogo web |
 
 Java e mobile continuam em fase posterior, conforme os ADRs.

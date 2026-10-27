@@ -91,6 +91,8 @@ def session(binary, cancel):
             send("1")
             expect(str(root / "projects/projeto-pty"))
             send("")
+            expect("Gerar CI GitHub Actions dos projetos")
+            send("")
             expect("Criar estes projetos?")
             send("talvez")
             expect("Responda s ou n")
@@ -103,7 +105,9 @@ def session(binary, cancel):
                 assert (destination / "index.html").is_file()
                 assert not (destination / "node_modules").exists()
                 assert not (destination / ".git").exists()
-            assert not any(path.name.startswith(".boilerplate-stage-") for path in root.rglob("*"))
+            assert not any(
+                path.name.startswith(".boilerplate-stage-") for path in root.rglob("*")
+            )
         finally:
             if process.poll() is None:
                 process.kill()

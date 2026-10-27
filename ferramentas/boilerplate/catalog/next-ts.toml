@@ -9,7 +9,7 @@ architecture = ""
 status = "ready"
 package_manager = "npm"
 paths = ["src/app/", "src/components/", "src/features/", "src/services/", "docs/"]
-capabilities = ["compose", "kubernetes", "prometheus-grafana"]
+capabilities = ["github-actions", "compose", "kubernetes", "prometheus-grafana"]
 module_systems = ["esm"]
 install = ["npm", "ci"]
 
@@ -25,3 +25,4 @@ purpose = "Instalar e executar a aplicação; não é necessário para planejar"
 
 [conditional_paths]
 compose = ["Dockerfile", ".dockerignore"]
+github-actions = [".ci/check.sh"]

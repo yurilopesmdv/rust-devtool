@@ -345,9 +345,20 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             }
         }
     }
-    if r.infrastructure.ci.is_none() && r.backend.template.as_deref() == Some("express-ts") {
+    let ci_supported = [&r.frontend.template, &r.backend.template]
+        .into_iter()
+        .flatten()
+        .all(|id| {
+            catalog.get(id).is_ok_and(|template| {
+                template
+                    .capabilities
+                    .iter()
+                    .any(|cap| cap == "github-actions")
+            })
+        });
+    if r.infrastructure.ci.is_none() && ci_supported {
         r.infrastructure.ci = Some(
-            if decision("Gerar CI GitHub Actions da API (sem deploy)?", false)? {
+            if decision("Gerar CI GitHub Actions dos projetos (sem deploy)?", false)? {
                 Ci::GithubActions
             } else {
                 Ci::None

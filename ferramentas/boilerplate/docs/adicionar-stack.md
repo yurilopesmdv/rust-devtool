@@ -37,7 +37,7 @@ Os comandos são arrays de argumentos, não strings de shell. Os requisitos exec
 
 ## 2. Declarar capacidades e caminhos condicionais
 
-Capacidades atuais: `postgres`, `mongodb`, `redis`, `compose`, `kubernetes`, `prometheus-grafana`, `vault`, `github-actions` (primeiro adapter de CI em Express). Frontend estático pode declarar `prometheus-grafana-container` para permitir monitoria via servidor de container quando Compose estiver selecionado.
+Capacidades atuais: `postgres`, `mongodb`, `redis`, `compose`, `kubernetes`, `prometheus-grafana`, `vault`, `github-actions` (adapters npm, uv, Cargo e Go). Frontend estático pode declarar `prometheus-grafana-container` para permitir monitoria via servidor de container quando Compose estiver selecionado.
 
 Omitir uma capacidade faz o planner rejeitar uma escolha incompatível. Não copie a lista inteira sem prever e validar cada integração. `conditional_paths` contém os caminhos que só aparecem quando aquela integração é escolhida; a estrutura pode ser `app/` para Python, `internal/` para Go ou a árvore apropriada de Java, sem condicionais por linguagem no planejador.
 
@@ -67,3 +67,9 @@ Teste ao menos a base mínima, a ausência de módulos opcionais, as integraçõ
 Java seguirá o mesmo processo. O template Go já utiliza seus caminhos convencionais e Go 1.27.3; a instalação global de seu runtime não faz parte da geração. Java/mobile permanecem nos ADRs de preparação.
 
 Os fontes compostos passam por generator/format.rs antes da publicação. JS/TS usa dprint embutido, Rust usa rustfmt e Go usa gofmt da toolchain; Python distribui fontes/fragmentos previamente formatados e testa suas combinações com Ruff. Novas linguagens devem definir esse contrato e um caminho no scripts/validate-generated.py, sem formatadores ou CLIs instalados globalmente.
+
+## CI de uma nova stack
+
+Declare `github-actions` e o caminho condicional `.ci/check.sh` somente após validar o adapter do gerenciador em `src/generator/ci.rs`. Gerenciadores novos precisam de fragmentos de job e script em `integrations/ci/`, com runtime explícito, instalação por lock e checks reais. O workflow chama o script local; não duplique a sequência de checks no YAML. Não inclua deploy ou serviços implicitamente.
+
+Execute `scripts/validate-generated.py --minimal --generated-ci --stacks <id>` com os runtimes preparados. `scripts/validate_generated_workflows.py --binary <caminho> --actionlint <caminho>` percorre o catálogo e todos os pares fullstack. Cubra também CI desativada, monorepo e split antes de marcar a stack ready.

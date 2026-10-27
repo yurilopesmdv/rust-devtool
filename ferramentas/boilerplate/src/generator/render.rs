@@ -245,7 +245,6 @@ fn render_assets(
             recipe.infrastructure.api_url = Some(api_url.to_string());
             if t.role == ProjectType::Frontend {
                 recipe.backend = Backend::default();
-                recipe.infrastructure.ci = Some(Ci::None);
                 recipe.infrastructure.secrets = Some(Secrets::Env);
                 recipe.infrastructure.vault_location = None;
                 recipe.infrastructure.vault_address = None;
@@ -260,7 +259,7 @@ fn render_assets(
             toml::to_string_pretty(&recipe).map_err(|e| Error::operation(e.to_string()))?,
         )?;
         super::integrations::infra::apply(plan, catalog, &root, &mut files)?;
-        super::ci::apply(plan, &root, &mut files)?;
+        super::ci::apply(plan, catalog, &root, &mut files)?;
         super::format::apply(&mut files)?;
         projects.push(ProjectFiles {
             destination: root,

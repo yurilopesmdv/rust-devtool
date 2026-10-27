@@ -9,7 +9,7 @@ architecture = "layered"
 status = "ready"
 package_manager = "uv"
 paths = ["app/modules/example/", "tests/", "docs/"]
-capabilities = ["migrations-mongodb-native", "migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+capabilities = ["github-actions", "migrations-mongodb-native", "migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
 install = ["uv", "sync", "--locked"]
 
 [[requirements]]
@@ -26,3 +26,4 @@ vault = ["app/config.py"]
 prometheus-grafana = ["app/infrastructure/metrics.py"]
 migrations-dbmate = ["scripts/migrate.sh", "migrations/sql/", "docs/MIGRATIONS.md"]
 migrations-mongodb-native = ["migrations/mongo/", "docs/MIGRATIONS.md"]
+github-actions = [".ci/check.sh"]

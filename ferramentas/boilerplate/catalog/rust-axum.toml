@@ -9,7 +9,7 @@ architecture = "layered"
 status = "ready"
 package_manager = "cargo"
 paths = ["src/modules/example/", "tests/", "docs/"]
-capabilities = ["migrations-mongodb-native", "migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+capabilities = ["github-actions", "migrations-mongodb-native", "migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
 module_systems = []
 install = ["cargo", "fetch", "--locked"]
 
@@ -37,3 +37,4 @@ vault = ["src/infrastructure/config.rs"]
 prometheus-grafana = ["src/infrastructure/metrics.rs"]
 migrations-dbmate = ["scripts/migrate.sh", "migrations/sql/", "docs/MIGRATIONS.md"]
 migrations-mongodb-native = ["migrations/mongo/", "docs/MIGRATIONS.md"]
+github-actions = [".ci/check.sh"]

@@ -82,6 +82,16 @@ jobs:
       - name: Exercise interactive wizard in PTY
         run: python3 ferramentas/boilerplate/scripts/wizard_pty.py --binary target/debug/boilerplate
 
+      - name: Validate all generated workflows
+        run: |
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          python3 ferramentas/boilerplate/scripts/validate_generated_workflows.py \
+            --binary target/debug/boilerplate --actionlint "$RUNNER_TEMP/actionlint"
+
   generated-node:
     name: Generated Node (${{ matrix.stack }}, ${{ matrix.modules }})
     runs-on: ubuntu-24.04
@@ -126,9 +136,9 @@ jobs:
           MODULE_SYSTEM: ${{ matrix.modules }}
         run: |
           if [ "$MODULE_SYSTEM" = commonjs ]; then
-            python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --commonjs-only
+            python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci --commonjs-only
           else
-            python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks "$TEMPLATE_ID"
+            python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci --stacks "$TEMPLATE_ID"
           fi
 
   generated-python:
@@ -158,7 +168,7 @@ jobs:
         run: uv python install 3.13 --no-bin
 
       - name: Validate generated application
-        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks python-fastapi
+        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci --stacks python-fastapi
 
   generated-rust:
     name: Generated Rust (Axum)
@@ -179,7 +189,7 @@ jobs:
       - name: Validate generated application
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/rust-boilerplate-generated-target
-        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks rust-axum
+        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci --stacks rust-axum
 
   generated-persistence:
     name: Persistence (${{ matrix.stack }}, ${{ matrix.modules }})
@@ -371,7 +381,7 @@ jobs:
           go-version: '1.27.3'
           cache: false
       - name: Validate generated API
-        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks go-http
+        run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --generated-ci --stacks go-http
       - name: Validate PostgreSQL adapter
         run: python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --stacks go-http
 

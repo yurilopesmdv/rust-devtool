@@ -174,6 +174,6 @@ Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atu
 
 Go também está disponível: [API net/http, requisitos e validação](docs/go.md).
 
-[CI opcional nos projetos Express](docs/ci.md): --ci github-actions, sem publicação/deploy.
+[CI opcional em todas as stacks web](docs/ci.md): --ci github-actions, sem publicação/deploy.
 
 [Migrations opcionais](docs/migrations.md): dbmate para PostgreSQL e mongodb-native, com integridade e execução explícita.

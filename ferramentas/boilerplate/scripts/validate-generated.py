@@ -26,6 +26,9 @@ def run(command, cwd, env):
 
 
 def validate_app(app, template, args, env):
+    if args.generated_ci:
+        run(["sh", ".ci/check.sh"], app, env)
+        return
     manager = template["package_manager"]
     if manager == "npm":
         run(["npm", "ci", "--no-audit", "--no-fund"], app, env)
@@ -101,7 +104,14 @@ def main():
     parser.add_argument(
         "--offline", action="store_true", help="Exigir caches npm/Cargo/uv preenchidos"
     )
+    parser.add_argument(
+        "--generated-ci",
+        action="store_true",
+        help="Executar exatamente o script do workflow gerado (somente --minimal)",
+    )
     args = parser.parse_args()
+    if args.generated_ci and not args.minimal:
+        parser.error("--generated-ci exige --minimal")
     if args.with_services and args.minimal:
         parser.error("--minimal não usa serviços")
     if args.commonjs_only and args.stacks:
@@ -208,6 +218,8 @@ def main():
                     ]:
                         if capability in capabilities:
                             command.extend(flags)
+                if args.generated_ci:
+                    command.extend(["--ci", "github-actions"])
                 run(command, root, env)
                 app_env = env.copy()
                 if args.with_services and backend and database != "none":

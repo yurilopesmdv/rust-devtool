@@ -653,7 +653,7 @@ fn go_postgres_is_optional_and_uses_repository_pool_and_preparation() {
 }
 
 #[test]
-fn generated_ci_is_opt_in_and_belongs_to_the_api_repository() {
+fn generated_ci_is_opt_in_for_each_repository_and_application() {
     let temp = Temp::new();
     let catalog = Catalog::embedded().unwrap();
     for enabled in [false, true] {
@@ -680,10 +680,25 @@ fn generated_ci_is_opt_in_and_belongs_to_the_api_repository() {
                         .get(&PathBuf::from(".github/workflows/ci.yml"))
                 })
                 .collect();
-            assert_eq!(workflows.len(), usize::from(enabled));
+            assert_eq!(
+                workflows.len(),
+                if enabled {
+                    if layout == Some(Layout::Split) { 2 } else { 1 }
+                } else {
+                    0
+                }
+            );
             if enabled {
                 let workflow = workflows[0];
-                assert!(workflow.contains("npm run check"));
+                assert!(workflow.contains("sh .ci/check.sh"));
+                assert_eq!(
+                    workflow.matches("name: Quality (").count(),
+                    if layout == Some(Layout::Monorepo) {
+                        2
+                    } else {
+                        1
+                    }
+                );
                 assert!(workflow.contains("contents: read"));
                 assert!(workflow.contains(if layout == Some(Layout::Monorepo) {
                     "working-directory: 'apps/api'"
@@ -695,14 +710,84 @@ fn generated_ci_is_opt_in_and_belongs_to_the_api_repository() {
                 let recipe =
                     Recipe::parse(&project.files[&PathBuf::from("boilerplate.toml")]).unwrap();
                 if recipe.project.kind == Some(ProjectType::Frontend) {
-                    assert_eq!(recipe.infrastructure.ci, Some(Ci::None));
+                    assert_eq!(
+                        recipe.infrastructure.ci,
+                        Some(if enabled { Ci::GithubActions } else { Ci::None })
+                    );
                 }
             }
         }
     }
+    let mut catalog = catalog;
+    catalog
+        .templates
+        .iter_mut()
+        .find(|t| t.id == "nest-ts")
+        .unwrap()
+        .capabilities
+        .retain(|c| c != "github-actions");
     let mut unsupported = recipe("nest-ts", ProjectType::Backend);
     unsupported.infrastructure.ci = Some(Ci::GithubActions);
     assert!(planner::build(unsupported, &catalog, &temp.0).is_err());
+}
+
+#[test]
+fn generated_ci_covers_every_stack_and_fullstack_pair() {
+    let temp = Temp::new();
+    let catalog = Catalog::embedded().unwrap();
+    for template in &catalog.templates {
+        for enabled in [false, true] {
+            let mut r = recipe(&template.id, template.role);
+            r.infrastructure.ci = Some(if enabled { Ci::GithubActions } else { Ci::None });
+            let plan = planner::build(r, &catalog, &temp.0).unwrap();
+            let projects = render::render(&plan, &catalog).unwrap();
+            let files = &projects[0].files;
+            assert_eq!(files.contains_key(&PathBuf::from(".ci/check.sh")), enabled);
+            assert_eq!(
+                files.contains_key(&PathBuf::from(".github/workflows/ci.yml")),
+                enabled
+            );
+        }
+    }
+    for front in catalog
+        .templates
+        .iter()
+        .filter(|t| t.role == ProjectType::Frontend)
+    {
+        for back in catalog
+            .templates
+            .iter()
+            .filter(|t| t.role == ProjectType::Backend)
+        {
+            for layout in [Layout::Monorepo, Layout::Split] {
+                let mut r = recipe(&back.id, ProjectType::Fullstack);
+                r.frontend.template = Some(front.id.clone());
+                r.project.layout = Some(layout);
+                r.infrastructure.ci = Some(Ci::GithubActions);
+                if layout == Layout::Split {
+                    r.project.destination = None;
+                    r.project.web_dir = Some(temp.0.join("web"));
+                    r.project.api_dir = Some(temp.0.join("api"));
+                }
+                let plan = planner::build(r, &catalog, &temp.0).unwrap();
+                let projects = render::render(&plan, &catalog).unwrap();
+                let mut scripts = 0;
+                let mut jobs = 0;
+                for project in projects {
+                    scripts += project
+                        .files
+                        .keys()
+                        .filter(|p| p.ends_with(".ci/check.sh"))
+                        .count();
+                    let workflow = &project.files[&PathBuf::from(".github/workflows/ci.yml")];
+                    assert!(!workflow.contains("@@"));
+                    jobs += workflow.matches("name: Quality (").count();
+                }
+                assert_eq!(scripts, 2);
+                assert_eq!(jobs, 2);
+            }
+        }
+    }
 }
 
 #[test]

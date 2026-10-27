@@ -8,7 +8,7 @@ architecture = ""
 status = "ready"
 package_manager = "npm"
 paths = ["index.html", "assets/", "src/scripts/", "src/styles/", "src/views/", "docs/"]
-capabilities = ["compose", "kubernetes", "prometheus-grafana-container"]
+capabilities = ["github-actions", "compose", "kubernetes", "prometheus-grafana-container"]
 module_systems = []
 install = ["npm", "ci"]
 [[requirements]]
@@ -23,3 +23,4 @@ purpose = "Instalar somente as ferramentas de desenvolvimento"
 
 [conditional_paths]
 compose = ["Dockerfile", ".dockerignore"]
+github-actions = [".ci/check.sh"]
