@@ -32,6 +32,9 @@ try {
  case 'complete':result={count:await db.collection('examples').countDocuments({display_name:{$exists:true}}),rows:await ledger.find().project({_id:1,status:1,checkpoint:1}).toArray(),lease:await locks.findOne({_id:'runner'})};break;
  case 'reserve':await locks.insertOne({_id:'runner',owner:'test-stale',started_at:new Date()});result=true;break;
  case 'reserved':result=(await locks.findOne({_id:'runner'}))?.owner??null;break;
+ case 'priorvalidator':await db.command({collMod:'examples',validator:{$jsonSchema:{required:['message'],properties:{message:{bsonType:'string'}}}},validationLevel:'strict',validationAction:'error'});result=true;break;
+ case 'contract':{let oldRejected=false;let previousPreserved=false;try{await db.collection('examples').insertOne({_id:'old-shape',message:'valid'})}catch(error){if(error.code!==121)throw error;oldRejected=true}try{await db.collection('examples').insertOne({_id:'bad-message',message:123,display_name:'valid'})}catch(error){if(error.code!==121)throw error;previousPreserved=true}result=oldRejected&&previousPreserved;break;}
+ case 'restored':{await db.collection('examples').insertOne({_id:'restored-shape',message:'valid'});let rejected=false;try{await db.collection('examples').insertOne({_id:'bad-after-restore',message:123})}catch(error){if(error.code!==121)throw error;rejected=true}result=rejected;break;}
  case 'drop':for(const name of ['examples','_boilerplate_migrations','_boilerplate_migration_lock'])if(await db.listCollections({name}).hasNext())await db.collection(name).drop();result=true;break;
  default:throw new Error('unknown action');
  }
@@ -62,6 +65,8 @@ def main():
         run(["cargo", "metadata", "--no-deps", "--format-version=1"], repo, env)
     )
     binary = str(Path(metadata["target_directory"]) / "debug/boilerplate")
+    if not run(["node", "--version"], repo, env).strip().startswith("v24."):
+        parser.error("Use Node 24 no PATH do verificador (carregue nvm use 24)")
     with tempfile.TemporaryDirectory(prefix="native mongo migrations-") as temporary:
         root = Path(temporary)
         control = root / "control"
@@ -262,6 +267,28 @@ def main():
                 assert admin("reserved") == "test-stale"
                 migrate(["unlock", "test-stale", "--confirm-stopped"])
                 assert admin("reserved") is None
+                admin("priorvalidator")
+                contract = app / "migrations/mongo/20261027000300_contract.json"
+                contract.write_text(
+                    json.dumps({"operation": "require_field", "field": "display_name"})
+                    + "\n"
+                )
+                migrate()
+                migrate()
+                assert admin("contract") is True
+                recovery = app / "migrations/mongo/20261027000400_recovery.json"
+                recovery.write_text(
+                    json.dumps(
+                        {
+                            "operation": "restore_validator",
+                            "from_version": "20261027000300",
+                        }
+                    )
+                    + "\n"
+                )
+                migrate()
+                migrate()
+                assert admin("restored") is True
                 print(
                     f"OK {stack}: ledger, checksum, falha parcial, checkpoint, retomada, concorrência e unlock controlado",
                     flush=True,

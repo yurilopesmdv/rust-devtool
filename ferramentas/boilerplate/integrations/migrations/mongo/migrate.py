@@ -61,6 +61,10 @@ def load():
         allowed = (
             {"operation"}
             if spec.get("operation") == "bootstrap_examples"
+            else {"operation", "field"}
+            if spec.get("operation") == "require_field"
+            else {"operation", "from_version"}
+            if spec.get("operation") == "restore_validator"
             else {"operation", "source", "target", "batch_size"}
         )
         if set(spec) - allowed:
@@ -81,9 +85,29 @@ def load():
             ):
                 raise ValueError("Backfill inválido")
             spec["batch_size"] = int(batch)
+        elif spec.get("operation") == "require_field":
+            if not isinstance(spec.get("field"), str) or not re.fullmatch(
+                r"[a-z][a-z0-9_]{0,63}", spec["field"]
+            ):
+                raise ValueError("Campo inválido")
+        elif spec.get("operation") == "restore_validator":
+            origin = spec.get("from_version")
+            if (
+                not isinstance(origin, str)
+                or not re.fullmatch(r"[0-9]{14}", origin)
+                or origin >= version
+            ):
+                raise ValueError("Versão de origem inválida")
         elif spec.get("operation") != "bootstrap_examples":
             raise ValueError("Operação desconhecida")
         files.append({"id": version, "checksum": hashlib.sha256(raw).hexdigest(), "spec": spec})
+    for file in files:
+        if file["spec"]["operation"] == "restore_validator" and not any(
+            source["id"] == file["spec"]["from_version"]
+            and source["spec"]["operation"] == "require_field"
+            for source in files
+        ):
+            raise ValueError("Origem de validator inexistente")
     return files
 
 
@@ -176,6 +200,56 @@ def run(client, files, args):
                         {"_id": "default"},
                         {"$setOnInsert": {"message": "API funcionando"}},
                         upsert=True,
+                    )
+                elif spec["operation"] == "require_field":
+                    field = spec["field"]
+                    if examples.count_documents(
+                        {"$expr": {"$ne": [{"$type": "$" + field}, "string"]}}
+                    ):
+                        raise ValueError("Backfill pendente")
+                    info = next(database.list_collections(filter={"name": "examples"}), {})
+                    options = info.get("options", {})
+                    ledger.update_one(
+                        {"_id": file["id"], "owner": OWNER, "validator_before": {"$exists": False}},
+                        {
+                            "$set": {
+                                "validator_before": {
+                                    "validator": options.get("validator", {}),
+                                    "level": options.get("validationLevel", "strict"),
+                                    "action": options.get("validationAction", "error"),
+                                }
+                            }
+                        },
+                    )
+                    previous = ledger.find_one({"_id": file["id"]})["validator_before"]["validator"]
+                    rule = {
+                        "$jsonSchema": {
+                            "bsonType": "object",
+                            "required": [field],
+                            "properties": {field: {"bsonType": "string"}},
+                        }
+                    }
+                    validator = {"$and": [previous, rule]} if previous else rule
+                    database.command(
+                        {
+                            "collMod": "examples",
+                            "validator": validator,
+                            "validationLevel": "strict",
+                            "validationAction": "error",
+                        }
+                    )
+                elif spec["operation"] == "restore_validator":
+                    source = ledger.find_one({"_id": spec["from_version"], "status": "applied"})
+                    if not source or "validator_before" not in source:
+                        raise ValueError("Snapshot de validator ausente")
+                    backup = source["validator_before"]
+                    database.command(
+                        {
+                            "collMod": "examples",
+                            "validator": backup["validator"],
+                            "validationLevel": backup["level"],
+                            "validationAction": backup["action"],
+                        }
                     )
                 else:
                     while True:

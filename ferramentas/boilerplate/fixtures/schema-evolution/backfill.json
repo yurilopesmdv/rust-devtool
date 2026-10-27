@@ -1,0 +1,6 @@
+{
+  "operation": "copy_field",
+  "source": "message",
+  "target": "display_name",
+  "batch_size": 1
+}

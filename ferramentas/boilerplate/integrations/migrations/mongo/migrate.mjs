@@ -32,7 +32,7 @@ function configuration() {
 
 function load() {
   const ids = new Set();
-  return readdirSync(join(root, 'migrations/mongo'), { withFileTypes: true })
+  const files = readdirSync(join(root, 'migrations/mongo'), { withFileTypes: true })
     .filter(entry => entry.name.endsWith('.json')).sort((a, b) => a.name.localeCompare(b.name))
     .map(entry => {
       if (!entry.isFile() || !/^[0-9]{14}_[a-z0-9_-]+\.json$/.test(entry.name)) {
@@ -51,6 +51,10 @@ function load() {
       }
       const keys = spec.operation === 'bootstrap_examples'
         ? ['operation']
+        : spec.operation === 'require_field'
+        ? ['operation', 'field']
+        : spec.operation === 'restore_validator'
+        ? ['operation', 'from_version']
         : ['operation', 'source', 'target', 'batch_size'];
       if (Object.keys(spec).some(key => !keys.includes(key))) throw new Error('Opção desconhecida');
       if (spec.operation === 'copy_field') {
@@ -60,9 +64,27 @@ function load() {
           ) || spec.source === spec.target || !Number.isInteger(spec.batch_size)
           || spec.batch_size < 1 || spec.batch_size > 1000
         ) throw new Error('Backfill inválido');
+      } else if (spec.operation === 'require_field') {
+        if (typeof spec.field !== 'string' || !/^[a-z][a-z0-9_]{0,63}$/.test(spec.field)) {
+          throw new Error('Campo inválido');
+        }
+      } else if (spec.operation === 'restore_validator') {
+        if (
+          typeof spec.from_version !== 'string' || !/^[0-9]{14}$/.test(spec.from_version)
+          || spec.from_version >= id
+        ) throw new Error('Versão de origem inválida');
       } else if (spec.operation !== 'bootstrap_examples') throw new Error('Operação desconhecida');
       return { id, checksum: createHash('sha256').update(bytes).digest('hex'), spec };
     });
+  for (const file of files) {
+    if (
+      file.spec.operation === 'restore_validator'
+      && !files.some(source =>
+        source.id === file.spec.from_version && source.spec.operation === 'require_field'
+      )
+    ) throw new Error('Origem de validator inexistente');
+  }
+  return files;
 }
 
 async function run(client, files) {
@@ -143,6 +165,46 @@ async function run(client, files) {
           await examples.updateOne({ _id: 'default' }, {
             $setOnInsert: { message: 'API funcionando' },
           }, { upsert: true });
+        } else if (file.spec.operation === 'require_field') {
+          const field = file.spec.field;
+          if (
+            await examples.countDocuments({ $expr: { $ne: [{ $type: `$${field}` }, 'string'] } })
+          ) throw new Error('Backfill pendente');
+          const info = (await database.listCollections({ name: 'examples' }).toArray())[0];
+          await ledger.updateOne({ _id: file.id, owner, validator_before: { $exists: false } }, {
+            $set: {
+              validator_before: {
+                validator: info?.options?.validator ?? {},
+                level: info?.options?.validationLevel ?? 'strict',
+                action: info?.options?.validationAction ?? 'error',
+              },
+            },
+          });
+          const previous = (await ledger.findOne({ _id: file.id })).validator_before.validator;
+          const rule = {
+            $jsonSchema: {
+              bsonType: 'object',
+              required: [field],
+              properties: { [field]: { bsonType: 'string' } },
+            },
+          };
+          const validator = Object.keys(previous).length ? { $and: [previous, rule] } : rule;
+          await database.command({
+            collMod: 'examples',
+            validator,
+            validationLevel: 'strict',
+            validationAction: 'error',
+          });
+        } else if (file.spec.operation === 'restore_validator') {
+          const source = await ledger.findOne({ _id: file.spec.from_version, status: 'applied' });
+          if (!source?.validator_before) throw new Error('Snapshot de validator ausente');
+          const backup = source.validator_before;
+          await database.command({
+            collMod: 'examples',
+            validator: backup.validator,
+            validationLevel: backup.level,
+            validationAction: backup.action,
+          });
         } else {
           while (true) {
             if (interrupted || !await locks.findOne({ _id: 'runner', owner })) {

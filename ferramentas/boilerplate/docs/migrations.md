@@ -50,7 +50,7 @@ cargo run -p rust-boilerplate -- new minha-api-mongo \
   --migrations mongodb-native --install no --git yes --github no --non-interactive
 ```
 
-Express/Nest executam Node; Python usa PyMongo e Rust usa o driver Mongo já selecionado. Não se instala Node para executar migrations Rust/Python. Todos leem migrations/mongo com o mesmo formato JSON: bootstrap_examples e copy_field em examples, com campos simples e lotes limitados. A opção é recusada em Go, que não anuncia MongoDB.
+Express/Nest executam Node; Python usa PyMongo e Rust usa o driver Mongo já selecionado. Não se instala Node para executar migrations Rust/Python. Todos leem migrations/mongo com o mesmo formato JSON: bootstrap_examples, copy_field, require_field e restore_validator em examples, com campos simples e lotes limitados. A opção é recusada em Go, que não anuncia MongoDB.
 
 A reserva de execução não tem TTL ou expiração que possa roubar um backfill ativo. O ledger registra checksum, estado e checkpoint. Falha parcial exige retomar com o mesmo arquivo; a operação copia somente destinos ausentes. Checkpoint pode subcontar em queda entre escrita e ledger, sem pular dados na retomada. Não são presumidas transações entre documentos no standalone.
 
@@ -62,3 +62,17 @@ python3 ferramentas/boilerplate/scripts/validate_mongodb_migrations.py --disposa
 ```
 
 O teste usa Node somente como cliente de controle do ambiente de teste; os executores Rust/Python são compilados/executados nos próprios runtimes. Verifica falha no meio do lote, reparo de dados, retomada, duas execuções, reserva preexistente não removida e unlock com owner incorreto/correto. O Mongo do CI é standalone descartável.
+
+## Provar compatibilidade e recuperação
+
+```sh
+# EVOLUTION_TEST_URL aponta para banco vazio descartável. Para SQL, defina DBMATE_BIN.
+python3 ferramentas/boilerplate/scripts/validate_schema_evolution.py --disposable-database --database postgres
+python3 ferramentas/boilerplate/scripts/validate_schema_evolution.py --disposable-database --database mongodb
+```
+
+O ensaio usa duas APIs Express reais e os [fixtures de evolução](../fixtures/schema-evolution/README.md). Verifica leitura/escrita nas duas versões, fallback do campo novo, falha e retomada do backfill, retirada explícita do writer antigo, contract e uma migration corretiva para recuperar compatibilidade. A tentativa negativa do writer antigo depois de contract falha por HTTP, provando que voltar apenas o binário não garante recuperação.
+
+PostgreSQL relaxa NOT NULL por nova versão; Mongo restaura o validator anterior que foi preservado no ledger. A operação Mongo require_field preserva validators anteriores e rejeita dados que não sejam string antes de impor a regra. restore_validator só referencia uma require_field anterior, mantém histórico e não apaga campos/dados. Permissão collMod é requisito apenas dessas operações de DDL.
+
+O teste HTTP é representativo em Express; os executores Mongo e preservação/restauração dos validators também são testados em Node/Nest, Python e Rust. Não é teste de todos os clientes nem garantia de latência para tabelas grandes. Em produção, ensaie backfill por lote, locks, observação, restauração de backup e a janela real de rollback. Jobs de migration não são ativados automaticamente em Compose/Kubernetes.

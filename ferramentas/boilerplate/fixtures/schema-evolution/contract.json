@@ -1,0 +1,4 @@
+{
+  "operation": "require_field",
+  "field": "display_name"
+}

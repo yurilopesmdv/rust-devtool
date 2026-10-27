@@ -454,3 +454,54 @@ jobs:
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/mongo-migration-target
         run: python3 ferramentas/boilerplate/scripts/validate_mongodb_migrations.py --disposable-database
+
+  schema-evolution:
+    name: Schema evolution (old and new HTTP APIs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      mongo:
+        image: mongo:8.0.13
+        env:
+          MONGO_INITDB_ROOT_USERNAME: app
+          MONGO_INITDB_ROOT_PASSWORD: test-only
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Prepare Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Obtain fixed migration binary
+        run: |
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 https://github.com/amacneil/dbmate/releases/download/v2.37.0/dbmate-linux-amd64 -o "$RUNNER_TEMP/dbmate"
+          printf '%s  %s\n' f855e99a0f0a81322014bf686b1cb820d2b4d8074e4eadafd64b851b80ecb15a "$RUNNER_TEMP/dbmate" | sha256sum -c -
+          chmod 700 "$RUNNER_TEMP/dbmate"
+      - name: PostgreSQL compatibility and forward recovery
+        env:
+          EVOLUTION_TEST_URL: postgresql://app:test-only@127.0.0.1:5432/app?sslmode=disable
+          DBMATE_BIN: ${{ runner.temp }}/dbmate
+        run: python3 ferramentas/boilerplate/scripts/validate_schema_evolution.py --disposable-database --database postgres
+      - name: Mongo compatibility and validator recovery
+        env:
+          EVOLUTION_TEST_URL: mongodb://app:test-only@127.0.0.1:27017/app?authSource=admin
+        run: python3 ferramentas/boilerplate/scripts/validate_schema_evolution.py --disposable-database --database mongodb

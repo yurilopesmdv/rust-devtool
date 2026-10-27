@@ -49,7 +49,7 @@ A evidência por aplicação/banco está nas tasks. Go passou build/race/vet, pe
 
 ## Encerramento remoto
 
-[Quality 40527937252](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40527937252) aprovou os 26 jobs do commit c3df5a0, incluindo os oito smoke tests reais. O primeiro run teve três falhas por /ready ausente; corrigidas nas bases e cobertas por testes. A branch validation/docker-20261027 contém a entrega; a main remota não foi alterada. Java/mobile e executores de migrations continuam microentregas futuras dos ADRs, não pendências desta rodada.
+[Quality 40527937252](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40527937252) aprovou os 26 jobs do commit c3df5a0, incluindo os oito smoke tests reais. O primeiro run teve três falhas por /ready ausente; corrigidas nas bases e cobertas por testes. A branch validation/docker-20261027 contém a entrega; a main remota não foi alterada. Na rodada T001–T024, Java/mobile e executores de migrations eram microentregas futuras. A continuação web abaixo implementa os executores; Java/mobile continuam posteriores.
 
 ## Continuação das implementações web
 
@@ -58,8 +58,8 @@ A conclusão de T001–T024 cobriu as entregas daquela rodada e seus checks. As 
 | Task | Status | Entrega |
 | --- | --- | --- |
 | [M001](tasks/M001.md) | concluída; CI aprovada | Migrations PostgreSQL opcionais |
-| [M002](tasks/M002.md) | concluída localmente; CI pendente | Migrations MongoDB por stack |
-| [M003](tasks/M003.md) | pendente | Compatibilidade e recuperação |
+| [M002](tasks/M002.md) | concluída; CI aprovada | Migrations MongoDB por stack |
+| [M003](tasks/M003.md) | concluída localmente; CI pendente | Compatibilidade e recuperação |
 | [C001](tasks/C001.md) | pendente | CI gerada para todo o catálogo web |
 
 Java e mobile continuam em fase posterior, conforme os ADRs.

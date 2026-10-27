@@ -1,6 +1,6 @@
 # ADR 001 — Evolução de schemas
 
-Estado: PostgreSQL e Mongo implementados em M001/M002; prova de compatibilidade e recuperação segue M003.
+Estado: M001/M002 implementados e aprovados remotamente; M003 provou compatibilidade/recuperação localmente e aguarda CI.
 
 ## Contexto
 

@@ -22,6 +22,12 @@ struct Migration {
 }
 enum Operation {
     Bootstrap,
+    Require {
+        field: String,
+    },
+    Restore {
+        from: String,
+    },
     Copy {
         source: String,
         target: String,
@@ -97,6 +103,10 @@ fn load() -> Result<Vec<Migration>, Failure> {
         let kind = spec["operation"].as_str().ok_or("Operação obrigatória")?;
         let allowed: &[&str] = if kind == "bootstrap_examples" {
             &["operation"]
+        } else if kind == "require_field" {
+            &["operation", "field"]
+        } else if kind == "restore_validator" {
+            &["operation", "from_version"]
         } else {
             &["operation", "source", "target", "batch_size"]
         };
@@ -105,6 +115,27 @@ fn load() -> Result<Vec<Migration>, Failure> {
         }
         let operation = match kind {
             "bootstrap_examples" => Operation::Bootstrap,
+            "require_field" => {
+                let name = spec["field"]
+                    .as_str()
+                    .ok_or("Campo obrigatório")?
+                    .to_owned();
+                if !field(&name) {
+                    return Err("Campo inválido".into());
+                }
+                Operation::Require { field: name }
+            }
+            "restore_validator" => {
+                let origin = spec["from_version"]
+                    .as_str()
+                    .ok_or("Versão de origem obrigatória")?
+                    .to_owned();
+                if origin.len() != 14 || !origin.bytes().all(|c| c.is_ascii_digit()) || origin >= id
+                {
+                    return Err("Versão de origem inválida".into());
+                }
+                Operation::Restore { from: origin }
+            }
             "copy_field" => {
                 let source = spec["source"]
                     .as_str()
@@ -134,6 +165,15 @@ fn load() -> Result<Vec<Migration>, Failure> {
             checksum: checksum(&bytes)?,
             operation,
         });
+    }
+    for file in &files {
+        if let Operation::Restore { from } = &file.operation
+            && !files.iter().any(|source| {
+                source.id == *from && matches!(source.operation, Operation::Require { .. })
+            })
+        {
+            return Err("Origem de validator inexistente".into());
+        }
     }
     Ok(files)
 }
@@ -203,6 +243,56 @@ async fn apply_file(database: &Database, file: &Migration, owner: &str) -> Resul
                 )
                 .upsert(true)
                 .await?;
+        }
+        Operation::Require { field } => {
+            let missing = doc! {"$expr":{"$ne":[{"$type":format!("${field}")},"string"]}};
+            if examples.count_documents(missing).await? > 0 {
+                return Err("Backfill pendente".into());
+            }
+            let info = database
+                .run_command(doc! {"listCollections":1,"filter":{"name":"examples"}})
+                .await?;
+            let options = info
+                .get_document("cursor")
+                .ok()
+                .and_then(|cursor| cursor.get_array("firstBatch").ok())
+                .and_then(|batch| batch.first())
+                .and_then(Bson::as_document)
+                .and_then(|spec| spec.get_document("options").ok())
+                .cloned()
+                .unwrap_or_default();
+            let backup = doc! {"validator":options.get_document("validator").cloned().unwrap_or_default(),"level":options.get_str("validationLevel").unwrap_or("strict"),"action":options.get_str("validationAction").unwrap_or("error")};
+            ledger
+                .update_one(
+                    doc! {"_id":&file.id,"owner":owner,"validator_before":{"$exists":false}},
+                    doc! {"$set":{"validator_before":backup}},
+                )
+                .await?;
+            let row = ledger
+                .find_one(doc! {"_id":&file.id})
+                .await?
+                .ok_or("Histórico ausente")?;
+            let previous = row
+                .get_document("validator_before")?
+                .get_document("validator")?
+                .clone();
+            let mut properties = Document::new();
+            properties.insert(field.clone(), doc! {"bsonType":"string"});
+            let rule = doc! {"$jsonSchema":{"bsonType":"object","required":[field.clone()],"properties":properties}};
+            let validator = if previous.is_empty() {
+                rule
+            } else {
+                doc! {"$and":[previous,rule]}
+            };
+            database.run_command(doc!{"collMod":"examples","validator":validator,"validationLevel":"strict","validationAction":"error"}).await?;
+        }
+        Operation::Restore { from } => {
+            let source = ledger
+                .find_one(doc! {"_id":from,"status":"applied"})
+                .await?
+                .ok_or("Origem não aplicada")?;
+            let backup = source.get_document("validator_before")?;
+            database.run_command(doc!{"collMod":"examples","validator":backup.get_document("validator")?.clone(),"validationLevel":backup.get_str("level")?,"validationAction":backup.get_str("action")?}).await?;
         }
         Operation::Copy {
             source,

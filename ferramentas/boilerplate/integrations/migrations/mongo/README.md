@@ -44,3 +44,21 @@ status informa reserved_by. Antes de remover uma reserva, prove que o processo o
 O comando só remove a reserva com owner correspondente; não apaga histórico/dados. Uma versão running/failed com arquivo intacto pode ser retomada após liberar a reserva de processo comprovadamente encerrado. SIGKILL e falha de rede podem exigir essa intervenção; não há garantia de cleanup assíncrono em encerramento forçado.
 
 Use identidade de migrations separada e backup com restauração ensaiada. Os drivers se conectam ao banco indicado na URI e preservam opções TLS; não desabilite certificados em produção. Erros de operação são resumidos sem imprimir URI/credenciais. No primeiro uso, execute os testes somente contra Mongo descartável, nunca um banco pessoal/produção.
+
+## Contract e recuperação por versão corretiva
+
+A operação require_field exige que todos os documentos tenham o campo string e compõe a regra com o validator anterior, sem descartá-lo:
+
+```json
+{"operation": "require_field", "field": "display_name"}
+```
+
+Ela guarda o validator/nível/ação anteriores no ledger antes da alteração. Reexecução usa esse snapshot original; requer identidade com permissão collMod (por exemplo, readWrite + dbAdmin somente neste banco), separada da API quando necessário. Retire writers antigos e verifique o backfill antes do contract; a ferramenta não descobre automaticamente versões de aplicações.
+
+Para uma recuperação revisada, crie uma NOVA migration com versão superior, apontando para uma require_field anterior aplicada:
+
+```json
+{"operation": "restore_validator", "from_version": "20261027000300"}
+```
+
+O comando restaura o snapshot anterior de validação, preserva o histórico e não reverte dados. Não é rollback automático ou comando down; exige arquivo novo revisado e execução explícita de up. Não use se os writers novos deixarem de tolerar o schema anterior. A recuperação de dados e restauração de backup continuam decisões separadas.
