@@ -42,9 +42,9 @@ Ajuda/argumentos inválidos não executam Cargo. A primeira falha encerra a exec
 
 ## Integração contínua
 
-O [workflow Quality](.github/workflows/quality.yml) executa o wrapper e o mesmo comando em PRs, push em main e execução manual. Usa runner Linux, Rust stable, token de leitura e checkout por SHA, sem credenciais persistidas. A primeira execução no GitHub ainda precisa ser observada após o envio dos arquivos; validação local do YAML não equivale a um run remoto.
+O [workflow Quality](.github/workflows/quality.yml) executa o wrapper e o mesmo comando em PRs, push em main e execução manual. Usa runner Linux, Rust stable, token de leitura e checkout por SHA, sem credenciais persistidas. A execução real está registrada no [Quality 40527937252](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40527937252); validação local do YAML e evidência remota são registradas separadamente.
 
-O workflow cobre o workspace e uma matriz de seis aplicações npm geradas: as cinco bases JavaScript/TypeScript e Express/CommonJS. O job Python valida FastAPI com uv fixado, Python 3.13, Ruff e pytest em .venv. O job Rust gera Axum de um cwd temporário, usa target separado do workspace e verifica fmt/test/Clippy. O job de persistência original cobre Express/Nest/Python/Rust e Express/CommonJS com PostgreSQL/MongoDB/Redis descartáveis, preparação explícita e falha de readiness. Go tem job próprio para base mínima e PostgreSQL. Esses services pertencem ao CI; new continua sem iniciar infraestrutura. A primeira execução desses jobs no GitHub permanece pendente. Para exigir um check antes de merge, configure as regras de branch/required checks no GitHub depois do primeiro run. Esse efeito não vem apenas do arquivo YAML.
+O workflow cobre o workspace e uma matriz de seis aplicações npm geradas: as cinco bases JavaScript/TypeScript e Express/CommonJS. O job Python valida FastAPI com uv fixado, Python 3.13, Ruff e pytest em .venv. O job Rust gera Axum de um cwd temporário, usa target separado do workspace e verifica fmt/test/Clippy. O job de persistência original cobre Express/Nest/Python/Rust e Express/CommonJS com PostgreSQL/MongoDB/Redis descartáveis, preparação explícita e falha de readiness. Go tem job próprio para base mínima e PostgreSQL. Esses services pertencem ao CI; new continua sem iniciar infraestrutura. Esses jobs foram aprovados remotamente, incluindo os oito smoke tests Docker na branch de validação. Para exigir um check antes de merge, configure as regras de branch/required checks no GitHub depois do primeiro run. Esse efeito não vem apenas do arquivo YAML.
 
 ## Documentação
 
@@ -71,6 +71,6 @@ Use serviços descartáveis dedicados para --with-services. Não aponte a suíte
 
 Revise o diff, atualize documentação/receitas afetadas e registre os comandos efetivamente executados na task. Diferencie validação local, testes com serviços e execução remota. Não conclua tasks dependentes por antecipação, nem marque uma stack ready sem seus checks. Uma correção comum não exige executar todos os serviços e todas as linguagens: amplie a validação conforme o impacto da mudança.
 
-Ao alterar dependências Rust distribuídas, execute o [check dos snapshots](ferramentas/boilerplate/docs/locks.md). O job rust-lock-snapshots usa --check, sem modificar os arquivos; sua primeira execução remota também precisa ser observada após o envio.
+Ao alterar dependências Rust distribuídas, execute o [check dos snapshots](ferramentas/boilerplate/docs/locks.md). O job rust-lock-snapshots usa --check, sem modificar os arquivos; sua execução remota foi aprovada no Quality registrado acima.
 
 Os testes de geração também usam gofmt da toolchain Go 1.27.3 no PATH. A CI prepara essa versão; a matriz Go executa build, testes com race e vet. Consulte [Go](ferramentas/boilerplate/docs/go.md).

@@ -79,7 +79,7 @@ python3 ferramentas/boilerplate/scripts/docker_smoke.py --disposable-daemon --st
 
 As oito bases web são aceitas por --stack. O teste gera sem instalar no host/Git/GitHub, constrói a imagem mínima, verifica UID não root e arquivo principal, publica uma porta somente no loopback e aguarda /ready (APIs) ou / (frontends). Depois envia stop e rejeita OOM/SIGKILL. Nomes e labels são exclusivos por execução; finally remove somente o container e tag próprios, sem prune ou remoção de volumes. Imagens base e cache de build podem permanecer no daemon de teste. Não execute contra um daemon de produção.
 
-No workflow Quality, a opção manual docker_smoke é false por padrão e habilita uma matriz separada em runners descartáveis. Builds precisam de acesso aos registries, rede e espaço; o limite é 35 minutos por stack. A validação local do runner cobre cleanup simulado em sucesso/falha; a execução real das imagens permanece pendente porque o ambiente de desenvolvimento não possui daemon disponível.
+No workflow Quality, a opção manual docker_smoke é false por padrão e habilita uma matriz separada em runners descartáveis. Builds precisam de acesso aos registries, rede e espaço; o limite é 35 minutos por stack. A validação local do runner cobre cleanup simulado em sucesso/falha; a execução real das oito imagens mínimas foi aprovada em runners descartáveis do GitHub; o ambiente local continua sem daemon disponível.
 
 ## Assistente interativo em PTY
 
@@ -96,3 +96,7 @@ O teste Linux/WSL abre um terminal real, usa HOME temporário e PATH sem instala
 O workflow também aceita push para branches `validation/**`. As branches `validation/docker-*` habilitam explicitamente a matriz de smoke Docker junto dos demais checks, em runners descartáveis. Isso permite verificar um workflow novo antes de ele existir na branch padrão. Branches de validação comuns executam os demais checks e mantêm o smoke desativado. O gerador não publica essas branches; o envio é uma ação separada do mantenedor.
 
 O runner tolera resets de conexão durante o startup até atingir o prazo. Cleanup tenta remover container e imagem mesmo se uma remoção falhar; se já houver erro de readiness/build, ele permanece como causa principal e falhas de limpeza aparecem em stderr.
+
+## Evidência remota concluída
+
+[Quality 40527937252](https://github.com/yurilopesmdv/rust-devtool/actions/runs/40527937252), commit c3df5a0: 26 jobs aprovados em 2026-10-27. Inclui workspace, bases, persistência com serviços descartáveis, locks, documentação e oito smoke tests reais. O primeiro run detectou /ready ausente em Express/Nest/Rust mínimos; a correção passou nos testes HTTP e nas imagens. Não houve aplicação de manifests em cluster nem smoke da composição completa com Vault/monitoria; esses testes não equivalem à validação de um ambiente de produção.
