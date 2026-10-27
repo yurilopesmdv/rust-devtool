@@ -9,7 +9,7 @@ architecture = "layered"
 status = "ready"
 package_manager = "go"
 paths = ["cmd/api/", "internal/config/", "internal/httpapi/", "internal/modules/example/", "docs/"]
-capabilities = ["postgres", "compose", "kubernetes"]
+capabilities = ["migrations-dbmate", "postgres", "compose", "kubernetes"]
 module_systems = []
 install = ["go", "mod", "download"]
 
@@ -26,3 +26,4 @@ purpose = "Formatar fontes Go antes da publicação; acompanha a toolchain"
 [conditional_paths]
 compose = ["Dockerfile", ".dockerignore"]
 postgres = ["internal/infrastructure/database/", "internal/modules/example/repositories/", "cmd/prepare/", "migrations/", "go.sum"]
+migrations-dbmate = ["scripts/migrate.sh", "migrations/sql/", "docs/MIGRATIONS.md"]

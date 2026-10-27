@@ -80,6 +80,9 @@ pub struct PlanArgs {
     pub backend: Option<String>,
     #[arg(long, value_enum)]
     pub database: Option<Database>,
+    /// Migrations versionadas opcionais (dbmate exige PostgreSQL).
+    #[arg(long, value_enum)]
+    pub migrations: Option<Migrations>,
     #[arg(long, value_enum)]
     pub database_location: Option<Location>,
     #[arg(long, value_enum)]
@@ -147,6 +150,7 @@ impl PlanArgs {
         apply!(r.frontend.template, self.frontend);
         apply!(r.backend.template, self.backend);
         apply!(r.backend.database, self.database);
+        apply!(r.backend.migrations, self.migrations);
         apply!(r.backend.database_location, self.database_location);
         apply!(r.backend.cache, self.cache);
         apply!(r.backend.cache_location, self.cache_location);
@@ -172,6 +176,13 @@ impl PlanArgs {
         // Desativar uma opção por flag também remove a localização herdada.
         if self.database == Some(Database::None) && self.database_location.is_none() {
             r.backend.database_location = None;
+        }
+        if self
+            .database
+            .is_some_and(|database| database != Database::Postgres)
+            && self.migrations.is_none()
+        {
+            r.backend.migrations = Some(Migrations::None);
         }
         if self.cache == Some(Cache::None) && self.cache_location.is_none() {
             r.backend.cache_location = None;

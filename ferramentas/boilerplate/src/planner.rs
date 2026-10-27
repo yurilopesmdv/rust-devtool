@@ -307,6 +307,12 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
             "Namespace Kubernetes inválido",
         )?;
     }
+    let migrations = r.backend.migrations.unwrap_or(Migrations::None);
+    require(
+        migrations == Migrations::None || (has_api && database == Database::Postgres),
+        "--migrations dbmate exige backend PostgreSQL",
+    )?;
+    r.backend.migrations = Some(migrations);
     r.backend.database = Some(database);
     r.backend.cache = Some(cache);
     let ci = r.infrastructure.ci.unwrap_or(Ci::None);
@@ -399,6 +405,7 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     let mut integrations = Vec::new();
     let mut omitted = Vec::new();
     for (key, enabled) in [
+        ("migrations-dbmate", migrations == Migrations::Dbmate),
         ("github-actions", ci == Ci::GithubActions),
         ("postgres", database == Database::Postgres),
         ("mongodb", database == Database::Mongodb),
@@ -423,10 +430,12 @@ pub fn build(mut r: Recipe, catalog: &Catalog, cwd: &Path) -> Result<Plan, Error
     )?;
     for capability in &integrations {
         let targets: Vec<_> = match capability.as_str() {
-            "postgres" | "mongodb" | "redis" | "vault" | "github-actions" => selected
-                .iter()
-                .filter(|(t, _)| t.role == ProjectType::Backend)
-                .collect(),
+            "postgres" | "mongodb" | "redis" | "vault" | "github-actions" | "migrations-dbmate" => {
+                selected
+                    .iter()
+                    .filter(|(t, _)| t.role == ProjectType::Backend)
+                    .collect()
+            }
             "prometheus-grafana" => selected
                 .iter()
                 .filter(|(t, _)| t.role == ProjectType::Backend || !has_api)

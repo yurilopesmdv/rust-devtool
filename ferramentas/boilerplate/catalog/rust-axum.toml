@@ -9,7 +9,7 @@ architecture = "layered"
 status = "ready"
 package_manager = "cargo"
 paths = ["src/modules/example/", "tests/", "docs/"]
-capabilities = ["compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+capabilities = ["migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
 module_systems = []
 install = ["cargo", "fetch", "--locked"]
 
@@ -35,3 +35,4 @@ mongodb = ["src/infrastructure/database.rs", "src/modules/example/repositories/"
 redis = ["src/infrastructure/cache.rs"]
 vault = ["src/infrastructure/config.rs"]
 prometheus-grafana = ["src/infrastructure/metrics.rs"]
+migrations-dbmate = ["scripts/migrate.sh", "migrations/sql/", "docs/MIGRATIONS.md"]

@@ -22,6 +22,7 @@ choice!(Database {
     Mongodb
 });
 choice!(Cache { None, Redis });
+choice!(Migrations { None, Dbmate });
 choice!(Location { Local, External });
 choice!(Containers { None, Compose });
 choice!(Kubernetes { None, Manifests });
@@ -73,6 +74,7 @@ pub struct Frontend {
 #[derive(Default, Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Backend {
+    pub migrations: Option<Migrations>,
     pub template: Option<String>,
     pub database: Option<Database>,
     pub database_location: Option<Location>,

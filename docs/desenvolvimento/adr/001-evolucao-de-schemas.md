@@ -1,6 +1,6 @@
 # ADR 001 — Evolução de schemas
 
-Estado: aceito como contrato de evolução; executores versionados ainda não implementados.
+Estado: PostgreSQL implementado na M001 e testado localmente; executor Mongo e prova de compatibilidade seguem M002/M003.
 
 ## Contexto
 
@@ -33,10 +33,10 @@ Arquivos aplicados são imutáveis. Uma correção gera nova migration; checksum
 
 Em falha de migration SQL transacional, reverter a transação e não registrar como aplicada. Operações não transacionais precisam de plano específico de compensação. Em Mongo, retomar pelo checkpoint após inspecionar o estado. Recuperação preferencial é uma migration corretiva; rollback da aplicação não implica apagar dados ou executar down automaticamente. Mudanças destrutivas exigem backup com restauração ensaiada e janela própria.
 
-## Microentregas futuras
+## Microentregas de implementação
 
 - M001: adapter dbmate opcional, versão/checksum, status/up explícitos, teste PostgreSQL de falha, concorrência e reexecução; manter db:prepare identificado como demonstração até a substituição.
 - M002: executor Mongo mínimo por stack com ledger/checksum/reserva; provar retomada de backfill no standalone e testar topologia transacional separadamente.
 - M003: validar release antiga e nova contra schema expandido; documentar recuperação antes de habilitar jobs de migration em Compose/Kubernetes.
 
-Nenhuma dessas microentregas é requisito oculto da geração atual; este ADR define o padrão que a futura implementação precisa cumprir.
+As opções continuam explícitas e desativadas por padrão. A implementação PostgreSQL adiciona ledger de checksums ao dbmate, snapshot dos arquivos executados e trava externa de sessão; a janela de queda entre commit e ledger é documentada e falha fechada. Consulte a task M001 e o guia de migrations para os limites efetivamente testados.

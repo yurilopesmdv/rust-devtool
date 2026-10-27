@@ -36,6 +36,9 @@ pub fn write(
     if vault {
         text.push_str("Vault CLI para bootstrap: [instalação oficial Linux](https://developer.hashicorp.com/vault/install). O Agent já faz parte dos arquivos de Compose/Kubernetes escolhidos.\n\n");
     }
+    if has_api && r.backend.migrations == Some(Migrations::Dbmate) {
+        text.push_str("## Migrations versionadas opcionais\n\nNa pasta da API, leia docs/MIGRATIONS.md e execute sh scripts/migrate.sh install, status ou up explicitamente. O wrapper não cria banco e usa identidade de DDL separada quando MIGRATION_DATABASE_URL é informada. Não há Job automático de migrations nesta entrega. A preparação demonstrativa anterior não substitui esse histórico.\n\n");
+    }
     if has_api && (db != Database::None || cache) {
         text.push_str("## Dados e configuração\n\nA aplicação lê DATABASE_URL e/ou REDIS_URL (somente os módulos presentes). .env.example da aplicação usa localhost; infra/.env.example usa nomes internos para containers/Kubernetes. Não misture esses endereços. Preencha credenciais próprias, com percent-encoding nos componentes de senha das URLs. Serviços externos não geram instâncias locais: configure seus URLs e TLS. PostgreSQL aceita sslmode=verify-full; MongoDB suporta mongodb+srv/TLS; Redis suporta rediss. Não desative a validação de certificados.\n\n");
     }

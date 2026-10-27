@@ -236,6 +236,18 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
             r.backend.database_location =
                 Some(service_location("Localização do banco", local_infra)?);
         }
+        if r.backend.database == Some(Database::Postgres) && r.backend.migrations.is_none() {
+            r.backend.migrations = Some(
+                if decision(
+                    "Adicionar migrations PostgreSQL versionadas (dbmate)?",
+                    false,
+                )? {
+                    Migrations::Dbmate
+                } else {
+                    Migrations::None
+                },
+            );
+        }
         if r.backend.cache.is_none() {
             r.backend.cache = Some(if decision("Usar Redis como cache opcional?", false)? {
                 Cache::Redis

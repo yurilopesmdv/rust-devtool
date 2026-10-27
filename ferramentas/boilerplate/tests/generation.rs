@@ -704,3 +704,53 @@ fn generated_ci_is_opt_in_and_belongs_to_the_api_repository() {
     unsupported.infrastructure.ci = Some(Ci::GithubActions);
     assert!(planner::build(unsupported, &catalog, &temp.0).is_err());
 }
+
+#[test]
+fn versioned_postgres_migrations_are_explicit_and_omitted_when_disabled() {
+    let temp = Temp::new();
+    let catalog = Catalog::embedded().unwrap();
+    for stack in [
+        "express-ts",
+        "nest-ts",
+        "rust-axum",
+        "python-fastapi",
+        "go-http",
+    ] {
+        for enabled in [false, true] {
+            let mut r = recipe(stack, ProjectType::Backend);
+            r.backend.database = Some(Database::Postgres);
+            r.backend.database_location = Some(Location::External);
+            r.backend.migrations = Some(if enabled {
+                Migrations::Dbmate
+            } else {
+                Migrations::None
+            });
+            let plan = planner::build(r, &catalog, &temp.0).unwrap();
+            let generated = render::render(&plan, &catalog).unwrap();
+            let files = &generated[0].files;
+            assert_eq!(
+                files.contains_key(&PathBuf::from("scripts/migrate.sh")),
+                enabled
+            );
+            assert_eq!(
+                files.contains_key(&PathBuf::from("scripts/_pg_client.py")),
+                enabled
+            );
+            assert_eq!(
+                files.contains_key(&PathBuf::from("docs/MIGRATIONS.md")),
+                enabled
+            );
+            assert_eq!(
+                files.keys().any(|path| path.starts_with("migrations/sql")),
+                enabled
+            );
+            if enabled {
+                assert!(files[&PathBuf::from("scripts/migrate.sh")].contains("--migration-lock"));
+                assert!(files[&PathBuf::from("scripts/migrate.sh")].contains("f855e99a0f0a8132"));
+            }
+        }
+    }
+    let mut invalid = recipe("express-ts", ProjectType::Backend);
+    invalid.backend.migrations = Some(Migrations::Dbmate);
+    assert!(planner::build(invalid, &catalog, &temp.0).is_err());
+}

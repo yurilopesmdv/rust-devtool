@@ -388,3 +388,19 @@ fn doctor_missing_tools_and_invalid_input_have_distinct_exit_codes() {
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
 }
+
+#[test]
+fn disabling_database_also_disables_inherited_migrations() {
+    let temp = Temp::new();
+    let path = temp.0.join("recipe.toml");
+    std::fs::write(&path,"schema_version = 1\ncatalog_version = '1'\n[project]\ntype = 'backend'\nname = 'api'\n[backend]\ntemplate = 'express-ts'\ndatabase = 'postgres'\ndatabase_location = 'external'\nmigrations = 'dbmate'\n").unwrap();
+    let args = PlanArgs {
+        config: Some(path),
+        database: Some(Database::None),
+        ..PlanArgs::default()
+    };
+    assert_eq!(
+        args.recipe().unwrap().backend.migrations,
+        Some(Migrations::None)
+    );
+}

@@ -374,3 +374,43 @@ jobs:
         run: python3 ferramentas/boilerplate/scripts/validate-generated.py --minimal --stacks go-http
       - name: Validate PostgreSQL adapter
         run: python3 ferramentas/boilerplate/scripts/validate-generated.py --with-services --stacks go-http
+
+  generated-migrations:
+    name: Generated PostgreSQL migrations (five stacks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      MIGRATIONS_TEST_URL: postgresql://app:test-only@127.0.0.1:5432/app?sslmode=disable
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare Rust formatter
+        run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Prepare Go formatter
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Obtain fixed migration binary
+        run: |
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 https://github.com/amacneil/dbmate/releases/download/v2.37.0/dbmate-linux-amd64 -o "$RUNNER_TEMP/dbmate"
+          printf '%s  %s\n' f855e99a0f0a81322014bf686b1cb820d2b4d8074e4eadafd64b851b80ecb15a "$RUNNER_TEMP/dbmate" | sha256sum -c -
+          chmod 700 "$RUNNER_TEMP/dbmate"
+          psql --version
+      - name: Verify history, rollback, retry and concurrency
+        env:
+          DBMATE_BIN: ${{ runner.temp }}/dbmate
+        run: python3 ferramentas/boilerplate/scripts/validate_migrations.py --disposable-database

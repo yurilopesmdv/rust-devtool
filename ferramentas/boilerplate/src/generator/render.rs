@@ -7,7 +7,7 @@ use crate::{
 };
 use std::{collections::BTreeMap, path::PathBuf};
 
-const GITIGNORE: &str = "node_modules/\ndist/\nbuild/\n.next/\ntarget/\ncoverage/\nbin/\n*.log\n*.tsbuildinfo\n.venv/\n__pycache__/\n*.py[cod]\n.pytest_cache/\n.ruff_cache/\n.env\n.env.*\n!.env.example\n.DS_Store\n.vscode/\n.idea/\n";
+const GITIGNORE: &str = "node_modules/\ndist/\nbuild/\n.next/\ntarget/\ncoverage/\n.tools/\nbin/\n*.log\n*.tsbuildinfo\n.venv/\n__pycache__/\n*.py[cod]\n.pytest_cache/\n.ruff_cache/\n.env\n.env.*\n!.env.example\n.DS_Store\n.vscode/\n.idea/\n";
 
 fn put(files: &mut BTreeMap<PathBuf, String>, path: PathBuf, content: String) -> Result<(), Error> {
     if !super::writer::safe_path(&path) {
@@ -134,6 +134,7 @@ fn render_assets(
         }
         super::integrations::backend(r, t, files, prefix)?;
         super::integrations::frontend(r, t, files, prefix)?;
+        super::migrations::apply(r, t, files, prefix)?;
         if t.role == ProjectType::Backend {
             put(
                 files,
@@ -174,6 +175,9 @@ fn render_assets(
             prefix.join("README.md"),
             app_readme(&app_name, &t.id, &t.package_manager, web_port, compose),
         )?;
+        if t.role == ProjectType::Backend && r.backend.migrations == Some(Migrations::Dbmate) {
+            files.get_mut(&prefix.join("README.md")).ok_or_else(|| Error::operation("README ausente"))?.push_str("\n## Migrations versionadas\n\nLeia [MIGRATIONS](docs/MIGRATIONS.md). Os comandos status/up são explícitos e não rodam no startup ou na geração. --install yes também instala a ferramenta local verificada; sem isso, use sh scripts/migrate.sh install.\n");
+        }
     }
     let mut projects = Vec::new();
     for (root, mut files) in roots {

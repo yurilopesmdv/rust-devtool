@@ -2,6 +2,7 @@ pub mod architecture;
 pub mod ci;
 pub mod format;
 pub mod integrations;
+pub mod migrations;
 pub mod render;
 pub mod runtime;
 pub mod vcs;
@@ -133,7 +134,19 @@ fn run_inner(args: NewArgs, catalog: &Catalog, progress: &mut Progress) -> Resul
             runtime::Runtime::default()
         };
         for app in &plan.applications {
-            runtime::install(app, &runtime, catalog.get(&app.template)?)?;
+            let template = catalog.get(&app.template)?;
+            runtime::install(app, &runtime, template)?;
+            if template.role == ProjectType::Backend
+                && plan.configuration.backend.migrations == Some(crate::config::Migrations::Dbmate)
+            {
+                runtime::checked(
+                    runtime
+                        .command("sh")
+                        .args(["scripts/migrate.sh", "install"])
+                        .current_dir(&app.destination),
+                    "Instalar ferramenta local de migrations",
+                )?;
+            }
         }
     }
     let name = plan.configuration.project.name.as_deref().unwrap();

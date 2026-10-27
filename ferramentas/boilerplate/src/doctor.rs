@@ -27,6 +27,35 @@ pub fn requirements(template: &Template, plan: Option<&Plan>) -> Vec<Requirement
     let mut requirements = template.requirements.clone();
     if let Some(plan) = plan {
         let infra = &plan.configuration.infrastructure;
+        if template.role == ProjectType::Backend
+            && plan.configuration.backend.migrations == Some(Migrations::Dbmate)
+        {
+            requirements.push(tool(
+                "python3",
+                &["--version"],
+                "Parser de URI de migrations sem bibliotecas adicionais",
+            ));
+            requirements.push(tool(
+                "psql",
+                &["--version"],
+                "Migrations explícitas: cliente PostgreSQL 17+",
+            ));
+            requirements.push(tool(
+                "curl",
+                &["--version"],
+                "Instalação local explícita do dbmate fixado",
+            ));
+            requirements.push(tool(
+                "sha256sum",
+                &["--version"],
+                "Verificar binário e integridade das migrations",
+            ));
+            requirements.push(tool(
+                "setsid",
+                &["--version"],
+                "Encerrar o grupo de processos ao cancelar migrations",
+            ));
+        }
         if infra.containers == Some(Containers::Compose) {
             requirements.push(tool(
                 "docker",

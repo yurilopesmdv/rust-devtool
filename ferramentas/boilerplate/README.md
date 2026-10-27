@@ -175,3 +175,5 @@ Veja [como adicionar uma linguagem](docs/adicionar-stack.md), a [arquitetura atu
 Go também está disponível: [API net/http, requisitos e validação](docs/go.md).
 
 [CI opcional nos projetos Express](docs/ci.md): --ci github-actions, sem publicação/deploy.
+
+[Migrations PostgreSQL opcionais](docs/migrations.md): --migrations dbmate, com integridade e execução explícita.
