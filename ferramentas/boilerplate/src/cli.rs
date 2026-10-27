@@ -80,7 +80,7 @@ pub struct PlanArgs {
     pub backend: Option<String>,
     #[arg(long, value_enum)]
     pub database: Option<Database>,
-    /// Migrations versionadas opcionais (dbmate exige PostgreSQL).
+    /// Migrations opcionais: dbmate (PostgreSQL) ou mongodb-native (MongoDB).
     #[arg(long, value_enum)]
     pub migrations: Option<Migrations>,
     #[arg(long, value_enum)]
@@ -177,12 +177,18 @@ impl PlanArgs {
         if self.database == Some(Database::None) && self.database_location.is_none() {
             r.backend.database_location = None;
         }
-        if self
-            .database
-            .is_some_and(|database| database != Database::Postgres)
-            && self.migrations.is_none()
+        if self.migrations.is_none()
+            && let Some(database) = self.database
         {
-            r.backend.migrations = Some(Migrations::None);
+            let compatible = matches!(
+                (database, r.backend.migrations),
+                (Database::Postgres, Some(Migrations::Dbmate))
+                    | (Database::Mongodb, Some(Migrations::MongodbNative))
+                    | (_, Some(Migrations::None) | None)
+            );
+            if !compatible {
+                r.backend.migrations = Some(Migrations::None);
+            }
         }
         if self.cache == Some(Cache::None) && self.cache_location.is_none() {
             r.backend.cache_location = None;

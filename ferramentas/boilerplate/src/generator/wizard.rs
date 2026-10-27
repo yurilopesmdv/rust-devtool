@@ -248,6 +248,18 @@ pub fn complete(args: &NewArgs, catalog: &Catalog) -> Result<Recipe, Error> {
                 },
             );
         }
+        if r.backend.database == Some(Database::Mongodb) && r.backend.migrations.is_none() {
+            r.backend.migrations = Some(
+                if decision(
+                    "Adicionar migrations MongoDB nativas com checkpoints?",
+                    false,
+                )? {
+                    Migrations::MongodbNative
+                } else {
+                    Migrations::None
+                },
+            );
+        }
         if r.backend.cache.is_none() {
             r.backend.cache = Some(if decision("Usar Redis como cache opcional?", false)? {
                 Cache::Redis

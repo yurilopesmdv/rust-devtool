@@ -57,8 +57,8 @@ A conclusão de T001–T024 cobriu as entregas daquela rodada e seus checks. As 
 
 | Task | Status | Entrega |
 | --- | --- | --- |
-| [M001](tasks/M001.md) | concluída localmente; CI pendente | Migrations PostgreSQL opcionais |
-| [M002](tasks/M002.md) | pendente | Migrations MongoDB por stack |
+| [M001](tasks/M001.md) | concluída; CI aprovada | Migrations PostgreSQL opcionais |
+| [M002](tasks/M002.md) | concluída localmente; CI pendente | Migrations MongoDB por stack |
 | [M003](tasks/M003.md) | pendente | Compatibilidade e recuperação |
 | [C001](tasks/C001.md) | pendente | CI gerada para todo o catálogo web |
 

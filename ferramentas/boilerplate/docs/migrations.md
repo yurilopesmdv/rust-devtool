@@ -40,3 +40,25 @@ python3 ferramentas/boilerplate/scripts/validate_migrations.py --disposable-data
 ```
 
 O verificador exige MIGRATIONS_TEST_URL e DBMATE_BIN, recusa tabelas preexistentes e testa as cinco stacks: status/up repetido, checksum alterado, rollback de falha, retomada e concorrência. Remove somente as tabelas que criou. Não inicia banco; a CI usa seu próprio serviço PostgreSQL descartável.
+
+## MongoDB: executor no próprio runtime
+
+```sh
+cargo run -p rust-boilerplate -- new minha-api-mongo \
+  --type backend --backend python-fastapi \
+  --database mongodb --database-location external \
+  --migrations mongodb-native --install no --git yes --github no --non-interactive
+```
+
+Express/Nest executam Node; Python usa PyMongo e Rust usa o driver Mongo já selecionado. Não se instala Node para executar migrations Rust/Python. Todos leem migrations/mongo com o mesmo formato JSON: bootstrap_examples e copy_field em examples, com campos simples e lotes limitados. A opção é recusada em Go, que não anuncia MongoDB.
+
+A reserva de execução não tem TTL ou expiração que possa roubar um backfill ativo. O ledger registra checksum, estado e checkpoint. Falha parcial exige retomar com o mesmo arquivo; a operação copia somente destinos ausentes. Checkpoint pode subcontar em queda entre escrita e ledger, sem pular dados na retomada. Não são presumidas transações entre documentos no standalone.
+
+O guia docs/MIGRATIONS.md gerado explica os comandos nativos status/up e unlock OWNER --confirm-stopped. A liberação só deve ocorrer depois de provar que o processo original encerrou. Nenhum comando apaga histórico ou faz baseline automático.
+
+```sh
+# MONGODB_TEST_URL aponta para banco vazio descartável; requer runtimes das stacks.
+python3 ferramentas/boilerplate/scripts/validate_mongodb_migrations.py --disposable-database
+```
+
+O teste usa Node somente como cliente de controle do ambiente de teste; os executores Rust/Python são compilados/executados nos próprios runtimes. Verifica falha no meio do lote, reparo de dados, retomada, duas execuções, reserva preexistente não removida e unlock com owner incorreto/correto. O Mongo do CI é standalone descartável.

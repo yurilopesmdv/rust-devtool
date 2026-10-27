@@ -9,7 +9,7 @@ architecture = "layered"
 status = "ready"
 package_manager = "npm"
 paths = ["src/config/", "src/common/middlewares/", "src/modules/example/", "tests/", "docs/"]
-capabilities = ["migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
+capabilities = ["migrations-mongodb-native", "migrations-dbmate", "compose", "kubernetes", "postgres", "mongodb", "redis", "vault", "prometheus-grafana"]
 module_systems = ["esm"]
 install = ["npm", "ci"]
 
@@ -31,3 +31,4 @@ redis = ["src/infrastructure/cache/"]
 vault = ["src/config/env.ts"]
 prometheus-grafana = ["src/infrastructure/observability/"]
 migrations-dbmate = ["scripts/migrate.sh", "migrations/sql/", "docs/MIGRATIONS.md"]
+migrations-mongodb-native = ["migrations/mongo/", "docs/MIGRATIONS.md"]

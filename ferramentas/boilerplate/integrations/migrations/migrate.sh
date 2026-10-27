@@ -43,8 +43,11 @@ command -v python3 >/dev/null || fail 'Instale Python 3.8+ (somente biblioteca p
 command -v psql >/dev/null || fail 'Instale o cliente PostgreSQL 17+ (psql).'
 command -v setsid >/dev/null || fail 'Instale util-linux (setsid).'
 # Never source .env as shell code. The migration identity can differ from the API identity.
-url=${MIGRATION_DATABASE_URL:-${DATABASE_URL:-}}
-url_file=${MIGRATION_DATABASE_URL_FILE:-${DATABASE_URL_FILE:-}}
+if [ -n "${MIGRATION_DATABASE_URL:-}${MIGRATION_DATABASE_URL_FILE:-}" ]; then
+    url=${MIGRATION_DATABASE_URL:-}; url_file=${MIGRATION_DATABASE_URL_FILE:-}
+else
+    url=${DATABASE_URL:-}; url_file=${DATABASE_URL_FILE:-}
+fi
 [ -z "$url" ] || [ -z "$url_file" ] || fail 'Configure URL direta OU arquivo, nunca ambos.'
 if [ -n "$url_file" ]; then url=$(cat -- "$url_file") || fail 'Não foi possível ler o arquivo de URL.'; fi
 case "$url" in postgres://*|postgresql://*) ;; *) fail 'Exporte MIGRATION_DATABASE_URL ou DATABASE_URL PostgreSQL.' ;; esac

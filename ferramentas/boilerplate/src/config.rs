@@ -22,7 +22,11 @@ choice!(Database {
     Mongodb
 });
 choice!(Cache { None, Redis });
-choice!(Migrations { None, Dbmate });
+choice!(Migrations {
+    None,
+    Dbmate,
+    MongodbNative
+});
 choice!(Location { Local, External });
 choice!(Containers { None, Compose });
 choice!(Kubernetes { None, Manifests });

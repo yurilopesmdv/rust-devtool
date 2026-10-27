@@ -118,6 +118,16 @@ def main():
             try:
                 migrate("install")
                 assert "pending" in migrate("status")
+                secret = root / "postgres-url"
+                secret.write_text(url)
+                secret.chmod(0o600)
+                file_env = env.copy()
+                file_env.pop("MIGRATION_DATABASE_URL", None)
+                file_env.update(
+                    MIGRATION_DATABASE_URL_FILE=str(secret),
+                    DATABASE_URL="postgresql://invalid:1/wrong",
+                )
+                run(["sh", "scripts/migrate.sh", "status"], app, file_env)
                 migrate()
                 migrate()
                 assert (

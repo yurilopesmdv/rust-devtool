@@ -176,4 +176,4 @@ Go também está disponível: [API net/http, requisitos e validação](docs/go.m
 
 [CI opcional nos projetos Express](docs/ci.md): --ci github-actions, sem publicação/deploy.
 
-[Migrations PostgreSQL opcionais](docs/migrations.md): --migrations dbmate, com integridade e execução explícita.
+[Migrations opcionais](docs/migrations.md): dbmate para PostgreSQL e mongodb-native, com integridade e execução explícita.

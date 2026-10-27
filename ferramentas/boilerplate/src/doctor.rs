@@ -56,6 +56,15 @@ pub fn requirements(template: &Template, plan: Option<&Plan>) -> Vec<Requirement
                 "Encerrar o grupo de processos ao cancelar migrations",
             ));
         }
+        if template.package_manager == "cargo"
+            && plan.configuration.backend.migrations == Some(Migrations::MongodbNative)
+        {
+            requirements.push(tool(
+                "sha256sum",
+                &["--version"],
+                "Checksums do executor nativo Mongo Rust",
+            ));
+        }
         if infra.containers == Some(Containers::Compose) {
             requirements.push(tool(
                 "docker",

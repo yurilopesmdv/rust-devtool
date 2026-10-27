@@ -754,3 +754,47 @@ fn versioned_postgres_migrations_are_explicit_and_omitted_when_disabled() {
     invalid.backend.migrations = Some(Migrations::Dbmate);
     assert!(planner::build(invalid, &catalog, &temp.0).is_err());
 }
+
+#[test]
+fn mongo_migrations_use_the_native_runtime_without_foreign_installers() {
+    let temp = Temp::new();
+    let catalog = Catalog::embedded().unwrap();
+    for (stack, path) in [
+        ("express-ts", "scripts/migrate.mjs"),
+        ("nest-ts", "scripts/migrate.mjs"),
+        ("python-fastapi", "scripts/migrate.py"),
+        ("rust-axum", "src/bin/migrate.rs"),
+    ] {
+        let mut r = recipe(stack, ProjectType::Backend);
+        r.backend.database = Some(Database::Mongodb);
+        r.backend.database_location = Some(Location::External);
+        r.backend.migrations = Some(Migrations::MongodbNative);
+        let plan = planner::build(r, &catalog, &temp.0).unwrap();
+        let projects = render::render(&plan, &catalog).unwrap();
+        let files = &projects[0].files;
+        assert!(files.contains_key(&PathBuf::from(path)));
+        assert!(files.contains_key(&PathBuf::from(
+            "migrations/mongo/20261027000100_create_examples.json"
+        )));
+        assert!(!files.contains_key(&PathBuf::from("scripts/migrate.sh")));
+        assert!(!files.contains_key(&PathBuf::from("scripts/_pg_client.py")));
+        if stack == "rust-axum" {
+            assert!(files[&PathBuf::from("Cargo.toml")].contains("default-run = \"meu-projeto\""));
+            assert!(!files[&PathBuf::from("Cargo.toml")].contains("sha2"));
+        }
+        if stack == "python-fastapi" {
+            assert!(!files[&PathBuf::from(path)].contains("subprocess"));
+        }
+        let mut disabled = plan.configuration.clone();
+        disabled.backend.migrations = Some(Migrations::None);
+        let disabled = planner::build(disabled, &catalog, &temp.0).unwrap();
+        let disabled = render::render(&disabled, &catalog).unwrap();
+        assert!(!disabled[0].files.contains_key(&PathBuf::from(path)));
+        assert!(
+            !disabled[0]
+                .files
+                .keys()
+                .any(|path| path.starts_with("migrations/mongo"))
+        );
+    }
+}

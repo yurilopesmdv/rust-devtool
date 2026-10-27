@@ -175,8 +175,12 @@ fn render_assets(
             prefix.join("README.md"),
             app_readme(&app_name, &t.id, &t.package_manager, web_port, compose),
         )?;
-        if t.role == ProjectType::Backend && r.backend.migrations == Some(Migrations::Dbmate) {
-            files.get_mut(&prefix.join("README.md")).ok_or_else(|| Error::operation("README ausente"))?.push_str("\n## Migrations versionadas\n\nLeia [MIGRATIONS](docs/MIGRATIONS.md). Os comandos status/up são explícitos e não rodam no startup ou na geração. --install yes também instala a ferramenta local verificada; sem isso, use sh scripts/migrate.sh install.\n");
+        if t.role == ProjectType::Backend
+            && r.backend
+                .migrations
+                .is_some_and(|choice| choice != Migrations::None)
+        {
+            files.get_mut(&prefix.join("README.md")).ok_or_else(|| Error::operation("README ausente"))?.push_str("\n## Migrations versionadas\n\nLeia [MIGRATIONS](docs/MIGRATIONS.md). Os comandos status/up são explícitos e não rodam no startup ou na geração. O guia descreve os comandos e dependências do executor selecionado.\n");
         }
     }
     let mut projects = Vec::new();
