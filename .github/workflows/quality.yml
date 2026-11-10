@@ -39,7 +39,7 @@ jobs:
         run: rustup toolchain install stable --profile minimal --component rustfmt
       - name: Prepare Go formatter
         if: matrix.stack == 'go-http'
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.3'
           cache: false
@@ -71,7 +71,7 @@ jobs:
         run: sh scripts/tests/check-workspace.sh
 
       - name: Prepare Go formatter for generation tests
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.3'
           cache: false
@@ -376,7 +376,7 @@ jobs:
       - name: Prepare Rust
         run: rustup toolchain install stable --profile minimal
       - name: Prepare Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.3'
           cache: false
@@ -410,7 +410,7 @@ jobs:
       - name: Prepare Rust formatter
         run: rustup toolchain install stable --profile minimal --component rustfmt
       - name: Prepare Go formatter
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.3'
           cache: false
